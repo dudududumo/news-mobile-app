@@ -1,15 +1,24 @@
-const http = require('http');
+// backend/src/index.js
+const express = require('express');
+const cors = require('cors');
+const mongoose = require('mongoose');
 
-const server = http.createServer((req, res) => {
-  if (req.url === '/api/health') {
-    res.writeHead(200, { 'Content-Type': 'application/json' });
-    res.end(JSON.stringify({ ok: true, message: 'Backend is running (no express)' }));
-  } else {
-    res.writeHead(404, { 'Content-Type': 'text/plain' });
-    res.end('Not found');
-  }
+const app = express();
+app.use(cors());
+app.use(express.json());
+
+// MongoDB 连接
+mongoose.connect('mongodb://localhost:27017/news_app', {
+  useNewUrlParser: true,
+  useUnifiedTopology: true,
+})
+  .then(() => console.log('MongoDB connected'))
+  .catch(err => console.error(err));
+
+// 占位 API
+app.get('/api/hello', (req, res) => {
+  res.json({ message: 'Hello from backend!' });
 });
 
-server.listen(3000, () => {
-  console.log('Backend running on port 3000');
-});
+const PORT = 3000;
+app.listen(PORT, () => console.log(`Server running on http://localhost:${PORT}`));
