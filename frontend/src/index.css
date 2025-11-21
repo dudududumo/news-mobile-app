@@ -1,68 +1,49 @@
+/* src/index.css */
 :root {
-  font-family: system-ui, Avenir, Helvetica, Arial, sans-serif;
-  line-height: 1.5;
-  font-weight: 400;
+  /* --- 色彩定义 --- */
+  /* 陶土红：更深沉一点，显得不那么艳俗 */
+  --c-terra: #A04030;
+  /* 背景色：暖灰色，衬托白色卡片 */
+  --c-bg: #EFEBE9;
+  /* 文字色：深褐灰 */
+  --c-text: #3E3A39;
 
-  color-scheme: light dark;
-  color: rgba(255, 255, 255, 0.87);
-  background-color: #242424;
+  /* --- 字体变量 --- */
+  /* 优先使用衬线体，营造精致感 */
+  --font-serif: "Times New Roman", "Songti SC", "SimSun", serif;
+  --font-sans: "Helvetica Neue", sans-serif;
 
-  font-synthesis: none;
-  text-rendering: optimizeLegibility;
-  -webkit-font-smoothing: antialiased;
-  -moz-osx-font-smoothing: grayscale;
-}
-
-a {
-  font-weight: 500;
-  color: #646cff;
-  text-decoration: inherit;
-}
-a:hover {
-  color: #535bf2;
+  /* --- Ant Design Mobile 覆盖 --- */
+  --adm-color-primary: var(--c-terra);
+  --adm-font-family: var(--font-sans);
 }
 
 body {
   margin: 0;
-  display: flex;
-  place-items: center;
-  min-width: 320px;
-  min-height: 100vh;
+  background-color: var(--c-bg);
+  color: var(--c-text);
+  /* 增加背景纹理感（可选） */
+  background-image: radial-gradient(#D7CCC8 1px, transparent 1px);
+  background-size: 20px 20px;
+  font-family: var(--font-sans);
+  -webkit-font-smoothing: antialiased;
 }
 
-h1 {
-  font-size: 3.2em;
-  line-height: 1.1;
+/* 通用：精致的输入框下划线 */
+.refined-input {
+  --adm-input-font-size: 16px;
+  /* 字号调小，显精致 */
+  padding: 8px 0;
+  border-bottom: 1px solid #E0E0E0;
+  transition: all 0.3s ease;
 }
 
-button {
-  border-radius: 8px;
-  border: 1px solid transparent;
-  padding: 0.6em 1.2em;
-  font-size: 1em;
-  font-weight: 500;
-  font-family: inherit;
-  background-color: #1a1a1a;
-  cursor: pointer;
-  transition: border-color 0.25s;
-}
-button:hover {
-  border-color: #646cff;
-}
-button:focus,
-button:focus-visible {
-  outline: 4px auto -webkit-focus-ring-color;
+.refined-input:focus-within {
+  border-bottom: 1px solid var(--c-terra);
 }
 
-@media (prefers-color-scheme: light) {
-  :root {
-    color: #213547;
-    background-color: #ffffff;
-  }
-  a:hover {
-    color: #747bff;
-  }
-  button {
-    background-color: #f9f9f9;
-  }
+/* 覆盖 placeholder 颜色，让它更淡 */
+.adm-input-element::placeholder {
+  color: #BCAAA4;
+  font-size: 14px;
 }
