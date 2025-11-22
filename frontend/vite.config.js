@@ -9,7 +9,12 @@ export default defineConfig({
       '/api': {
         target: 'http://localhost:3000',
         changeOrigin: true,
-        rewrite: (path) => path.replace(/^\/api/, '')
+        // 由于后端注册的是 app.use('/api/posts')，所以不需要 rewrite
+      },
+      // 这一段是为了让前端能看到上传的图片
+      '/uploads': {
+        target: 'http://localhost:3000',
+        changeOrigin: true,
       }
     }
   }

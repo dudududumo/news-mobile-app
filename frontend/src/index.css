@@ -1,19 +1,14 @@
-/* src/index.css */
 :root {
   /* --- 色彩定义 --- */
-  /* 陶土红：更深沉一点，显得不那么艳俗 */
   --c-terra: #A04030;
-  /* 背景色：暖灰色，衬托白色卡片 */
   --c-bg: #EFEBE9;
-  /* 文字色：深褐灰 */
   --c-text: #3E3A39;
 
   /* --- 字体变量 --- */
-  /* 优先使用衬线体，营造精致感 */
   --font-serif: "Times New Roman", "Songti SC", "SimSun", serif;
   --font-sans: "Helvetica Neue", sans-serif;
 
-  /* --- Ant Design Mobile 覆盖 --- */
+  /* --- Ant Design Mobile 变量覆盖 --- */
   --adm-color-primary: var(--c-terra);
   --adm-font-family: var(--font-sans);
 }
@@ -22,17 +17,15 @@ body {
   margin: 0;
   background-color: var(--c-bg);
   color: var(--c-text);
-  /* 增加背景纹理感（可选） */
   background-image: radial-gradient(#D7CCC8 1px, transparent 1px);
   background-size: 20px 20px;
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* 通用：精致的输入框下划线 */
+/* 通用：精致输入框 */
 .refined-input {
   --adm-input-font-size: 16px;
-  /* 字号调小，显精致 */
   padding: 8px 0;
   border-bottom: 1px solid #E0E0E0;
   transition: all 0.3s ease;
@@ -42,8 +35,118 @@ body {
   border-bottom: 1px solid var(--c-terra);
 }
 
-/* 覆盖 placeholder 颜色，让它更淡 */
 .adm-input-element::placeholder {
   color: #BCAAA4;
   font-size: 14px;
+}
+
+/* 🔥🔥🔥 弹窗样式核心修复 🔥🔥🔥 */
+
+/* 1. 弹窗本体样式 */
+.login-modal {
+  background: #FFFFFF;
+  border-radius: 16px;
+  /* 确保阴影不被切掉，需要在父级开启 overflow: visible */
+  box-shadow: 0 20px 40px rgba(62, 58, 57, 0.15);
+  padding: 32px 24px;
+  /* 调整内边距，防止内容太挤 */
+  position: relative;
+  width: 100%;
+  box-sizing: border-box;
+  /* 关键：防止宽度溢出 */
+  overflow: visible;
+  /* 关键：让顶部红线和阴影显示出来 */
+}
+
+/* 2. 顶部陶土色装饰线 */
+.login-modal::before {
+  content: '';
+  position: absolute;
+  top: 0;
+  left: 20px;
+  /* 稍微往里收一点，显得精致 */
+  right: 20px;
+  height: 4px;
+  background: var(--c-terra);
+  border-radius: 0 0 2px 2px;
+}
+
+/* 3. 标题 */
+.login-modal-title {
+  font-family: var(--font-serif);
+  font-size: 22px;
+  font-weight: bold;
+  color: #2c2c2c;
+  margin: 10px 0 16px 0;
+  text-align: center;
+  letter-spacing: 0.5px;
+}
+
+/* 4. 内容 */
+.login-modal-content {
+  text-align: center;
+  color: #666;
+  font-size: 15px;
+  line-height: 1.6;
+  margin-bottom: 24px;
+}
+
+/* 5. 按钮组 */
+.login-modal-button-group {
+  display: flex;
+  gap: 12px;
+  margin-top: 20px;
+}
+
+.login-modal-button {
+  flex: 1;
+  height: 40px;
+  border-radius: 4px;
+  font-size: 15px;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  white-space: nowrap;
+}
+
+.login-modal-cancel {
+  background: #fff;
+  border: 1px solid #E0E0E0;
+  color: #999;
+}
+
+.login-modal-confirm {
+  background: var(--c-terra);
+  border: 1px solid var(--c-terra);
+  color: #fff;
+  box-shadow: 0 4px 12px rgba(160, 64, 48, 0.25);
+}
+
+.login-modal-confirm:active {
+  opacity: 0.9;
+  transform: scale(0.98);
+}
+
+/* 🔥🔥🔥 强制覆盖 Antd Mobile Modal 默认样式 🔥🔥🔥 */
+/* 必须加 !important 才能打败库的内联样式 */
+
+/* 移除默认的白色圆角背景盒子的样式，让我们的 .login-modal 接管 */
+.custom-modal-reset .adm-modal-body {
+  padding: 0 !important;
+  background: transparent !important;
+}
+
+.custom-modal-reset .adm-center-popup-box {
+  max-width: 90vw !important;
+  /* 限制最大宽度为视口宽度的90% */
+  width: 340px !important;
+  /* 默认宽度 */
+  background: transparent !important;
+  box-shadow: none !important;
+  overflow: visible !important;
+  /* 关键：允许子元素阴影溢出 */
+  border-radius: 16px !important;
 }
