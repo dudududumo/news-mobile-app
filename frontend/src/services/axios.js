@@ -3,8 +3,8 @@
 import axios from 'axios';
 import { Toast } from 'antd-mobile';
 
-// --- 修改点 1: 明确后端地址 ---
-const BASE_URL = 'http://localhost:3000/api';
+// 从Vite环境变量获取后端API地址
+const BASE_URL = import.meta.env.VITE_API_BASE_URL || 'http://localhost:3000/api';
 
 const instance = axios.create({
   baseURL: BASE_URL,
