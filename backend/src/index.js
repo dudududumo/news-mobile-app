@@ -10,7 +10,7 @@ const app = express();
 // 前端 Vercel 域名 + 本地调试端口
 app.use(cors({
   origin: [
-    'https://news-mobile-d27qrlkpy-dudududumos-projects.vercel.app',
+    'https://news-mobile-app.vercel.app',
     'http://localhost:5173'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
