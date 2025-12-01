@@ -1,5 +1,6 @@
 {
   "version": 3,
+  "name": "news-mobile-app",
   "rootDirectory": "frontend",
   "builds": [
     {
