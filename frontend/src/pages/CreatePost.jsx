@@ -2,7 +2,8 @@ import React, { useState, useEffect, useRef } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input } from 'antd-mobile';
-import { useNavigate } from 'react-router-dom';
+import { useNavigate, useLocation } from 'react-router-dom';
+import { CompassOutline } from 'antd-mobile-icons';
 import service from '../services/axios';
 
 // --- 样式定义 ---
@@ -105,6 +106,7 @@ const quillModules = {
 
 const CreatePost = () => {
   const navigate = useNavigate();
+  const location = useLocation();
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [fileList, setFileList] = useState([]);
@@ -112,6 +114,37 @@ const CreatePost = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const isRestoring = useRef(false);
+
+  // ===============================================
+  // 🔥🔥🔥 新增逻辑：监听 AI 话题挑战跳转 🔥🔥🔥
+  // ===============================================
+  useEffect(() => {
+    // 检查路由是否携带了 autoFillTopic
+    if (location.state?.autoFillTopic) {
+      const newTag = location.state.autoFillTopic;
+
+      // 避免重复添加，且避免和草稿恢复冲突（这里做个简单的延时确保在草稿恢复后执行）
+      setTimeout(() => {
+        setTags(prevTags => {
+          if (!prevTags.includes(newTag)) {
+            // 弹出提示
+            Toast.show({
+              content: (
+                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
+                  <span style={{ fontSize: 14 }}>已接受话题挑战</span>
+                  <span style={{ color: 'var(--c-terra)', fontWeight: 'bold', marginTop: 4 }}>#{newTag}</span>
+                </div>
+              ),
+              icon: <CompassOutline style={{ color: 'var(--c-terra)', fontSize: 32 }} />,
+              duration: 2500,
+            });
+            return [...prevTags, newTag];
+          }
+          return prevTags;
+        });
+      }, 600); // 延时 600ms，等待草稿恢复逻辑（你代码里的 1000ms 恢复 flag）稳定
+    }
+  }, [location.state]);
 
   // --- 获取当前用户的专属草稿 Key ---
   const getDraftKey = () => {

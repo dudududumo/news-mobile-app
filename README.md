@@ -1,1066 +1,711 @@
-# 简易资讯移动端 11/22|更新内容发布/feed流页面/优化登陆注册
+# 简易资讯移动端 12/1|功能完善
+
+## 目录
+
+- [项目简介](#项目简介)
+- [功能特性](#功能特性)
+- [功能实现详情](#功能实现详情)
+- [技术栈](#技术栈)
+- [项目结构](#项目结构)
+- [快速开始](#快速开始)
+- [RESTful接口设计](#restful接口设计)
+- [数据库设计](#数据库设计)
+- [开发说明](#开发说明)
+- [架构设计](#架构设计)
+- [性能优化方案](#性能优化方案)
+- [埋点设计](#埋点设计)
+- [安全策略文档](#安全策略文档)
+- [许可证](#许可证)
 
 ## 项目简介
-这是一个基于React和Node.js开发的短图文社交应用，支持用户发布短内容和图片，浏览信息流，实现类似朋友圈的社交功能。
+
+这是一个基于React和Node.js开发的移动端资讯应用，支持用户注册登录、内容发布、浏览Feed流、互动评论等功能。应用采用前后端分离架构，前端使用React+Ant Design Mobile构建响应式界面，后端使用Node.js+Express+MongoDB提供RESTful API服务。
+
+## 功能特性
+
+### 用户系统
+- 手机号注册/登录（验证码验证）
+- JWT认证与权限管理
+- Token刷新机制
+
+### 内容管理
+- 短图文内容发布（支持文本和图片）
+- 富文本编辑器支持
+- AI自动标签生成
+
+### Feed流功能
+- 无限滚动加载
+- 下拉刷新功能
+- 内容点赞与评论计数显示
+
+### 互动功能
+- 内容点赞与取消点赞
+- 评论发布与展示
+- 图片查看器支持
+- 点赞状态本地缓存
+
+## 功能实现详情
+
+### 用户系统功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **手机号注册** | 前端实现手机号格式验证和验证码发送；后端使用bcrypt加密密码，生成JWT令牌并设置过期时间；支持开发环境测试验证码（123456） | POST `/auth/register` |
+| **密码登录** | 前端实现表单验证（密码长度8-20位）；后端使用bcrypt验证密码，生成JWT令牌；支持记住密码功能 | POST `/auth/login` |
+| **验证码登录** | 前端实现验证码倒计时功能（60秒）和手机号格式验证；后端验证验证码有效性（5分钟过期），生成JWT令牌 | POST `/auth/login` |
+| **JWT认证** | 前端使用localStorage存储token和用户信息；axios拦截器自动添加Authorization头；后端验证JWT签名和过期时间 | 中间件应用于受保护路由 |
+| **Token刷新** | 后端实现token刷新逻辑，生成新token并保持用户登录状态；前端在请求失败时自动尝试刷新token | POST `/auth/refresh` |
+| **验证码发送** | 前端实现手机号格式验证和发送频率限制；后端生成6位数字验证码，设置5分钟过期，支持开发环境固定验证码 | POST `/auth/send-code` |
+| **登录状态保持** | 使用localStorage存储token和用户信息，应用启动时自动恢复登录状态；实现登出功能清除所有存储数据 | 无特定API，使用浏览器存储 |
+| **路由保护** | 基于React Router实现路由守卫，未登录用户访问受保护页面时自动重定向至登录页 | 无特定API，前端路由实现 |
+| **密码强度验证** | 前端实现密码强度检测（包含数字和字母，长度8-20位）；提供实时密码强度反馈 | 无特定API，前端表单验证 |
+| **用户信息存储** | 登录成功后将用户信息缓存在localStorage中，避免频繁请求用户数据；登出时清除所有本地缓存 | 无特定API，使用localStorage |
+
+### 内容管理功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **短图文发布** | 支持文本内容和多张图片混合发布；实现内容预览功能；包含发布状态管理和错误提示 | POST `/posts` |
+| **富文本编辑器** | 集成ReactQuill编辑器，自定义工具栏配置（粗体、斜体、列表、引用等）；支持中文界面；实现内容样式自定义 | 无特定API，前端组件实现 |
+| **图片上传** | 支持多图上传功能，限制单张图片大小（5MB）；实现图片预览和删除功能；上传进度显示；后端使用multer处理文件存储 | POST `/posts/upload` |
+| **AI标签生成** | 基于文章内容自动生成相关标签（最多5个）；实现本地兜底策略，当AI服务不可用时使用预设标签；支持手动修改生成的标签 | POST `/posts/ai-label` |
+| **草稿自动保存** | 编辑器内容自动保存至localStorage；页面刷新或重新进入时恢复草稿；发布成功后清除草稿 | 无特定API，使用localStorage |
+| **话题挑战跳转** | 支持从相关文章或标签页跳转至创建页面，并自动填充话题内容；提供创作引导功能 | 无特定API，导航参数传递 |
+| **OpenAI集成** | 后端配置OpenAI客户端，使用API Key进行认证；实现请求超时和错误处理机制；支持模型参数配置 | 无特定API，后端服务调用 |
+| **文件存储管理** | 后端使用multer配置文件上传路径和命名规则；支持文件类型验证（仅图片格式）；实现静态文件服务提供访问 | GET `/uploads/{filename}` |
+
+### Feed流功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **下拉刷新** | 使用 `PullToRefresh` 组件包装内容区域，实现下拉刷新交互；`handleRefresh` 函数重置页码为1，添加时间戳避免缓存，重新获取最新数据，并从本地缓存恢复点赞状态 | GET `/posts?page=1&limit=10&t={timestamp}` |
+| **无限滚动** | 使用 `InfiniteScroll` 组件实现无限滚动加载；`loadMore` 函数根据当前页码请求下一页数据，追加到现有数据列表；通过 `hasMore` 状态控制是否继续加载 | GET `/posts?page={page}&limit=10` |
+| **滚动位置保持** | 利用 `sessionStorage` 保存和恢复滚动位置；组件挂载时读取并恢复滚动位置；监听滚动事件实时保存当前滚动坐标 | 无特定API，使用浏览器本地存储 |
+| **点赞状态同步** | 实现本地缓存机制（`updateLikedStateCache`/`getLikedStateFromCache`）在Feed流和详情页间同步点赞状态；组件初始化和路由切换时自动从缓存更新点赞状态 | 结合 `/posts/{_id}/like` 和 `/posts/{_id}/unlike` 接口 |
+| **首次加载骨架屏** | 在数据加载期间显示骨架屏组件（`Skeleton`），提升用户体验；使用条件渲染根据 `isFirstLoading` 状态切换显示 | 无特定API，前端实现 |
+| **发布入口** | 页面右下角固定FAB（浮动操作按钮），点击导航至创建页面；根据登录状态控制显示和点击行为 | 无特定API，导航至 `/create` |
+| **登录状态判断** | 在点赞、评论和发布等操作前检查登录状态；未登录时显示模态框提示并跳转登录页面 | 调用 `getToken()` 获取认证状态 |
+| **用户信息展示** | 顶部导航栏根据登录状态显示用户头像和昵称或登录提示；支持点击退出登录操作 | 本地存储 `userInfo` |
+| **退出登录** | 显示确认模态框，确认后清除token、用户信息和最后退出时间，并重定向至登录页 | 无特定API，调用 `clearToken()` 清除认证信息 |
+| **数据初始化** | 组件挂载时自动初始化数据，调用 `handleRefresh` 加载第一页数据，并恢复保存的滚动位置 | GET `/posts?page=1&limit=10&t={timestamp}` |
+
+### 互动功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **点赞功能** | 实现 `handleLike` 函数，支持点赞/取消点赞；使用乐观更新UI策略，先更新前端状态再请求后端；结合本地缓存机制保持状态同步；根据登录状态控制交互行为 | POST `/posts/{id}/like` 和 `/posts/{id}/unlike` |
+| **评论功能** | `fetchComments` 获取评论列表，`handleSubmitComment` 提交新评论；支持评论区实时更新；实现评论输入框状态管理和表单验证；评论加载时显示骨架屏 | GET `/posts/{id}/comments`<br>POST `/posts/{id}/comments` |
+| **图片查看器** | 使用 `ImageViewer.Multi` 组件实现图片查看器；支持多图浏览和切换；点击文章中的图片触发查看模式 | 无特定API，前端组件实现 |
+| **登录状态交互控制** | 未登录用户点击互动按钮时显示 `ActionSheet` 提示框；支持直接跳转到登录页面并保留当前页面引用；登录状态判断影响点赞图标显示和交互可用性 | 无特定API，调用 `getToken()` 获取认证状态 |
+| **相关阅读推荐** | `renderRelatedPosts` 函数渲染相关文章列表；支持点击跳转到相关文章详情页；包含话题标签展示 | 无特定API，文章详情接口返回相关文章数据 |
+| **AI标签点击交互** | 点击AI标签触发 `handleChallenge` 函数，跳转到创建页面并自动填充话题内容；提供创作引导功能 | 无特定API，导航至 `/create` 并传递话题参数 |
+| **滚动到评论区** | 支持通过URL状态参数直接滚动到评论区；评论按钮点击后平滑滚动到评论输入区域；使用 `commentsSectionRef` 引用实现精确定位 | 无特定API，前端DOM操作实现 |
+| **点赞状态缓存同步** | 实现用户ID绑定的缓存机制（`updateLikedStateCache`/`getLikedStateFromCache`）；在Feed流和详情页间保持点赞状态一致性；登录/登出状态切换时自动更新显示 | 无特定API，使用 `sessionStorage` 实现 |
+| **阅读数展示** | 文章详情页显示阅读数量统计；与点赞数和评论数一起构成内容互动数据面板 | 无特定API，文章详情接口返回阅读数 |
+| **时间格式化显示** | 文章发布时间使用 `YYYY-MM-DD` 格式，评论时间使用相对时间（如"3分钟前"）；使用 `dayjs` 库进行时间处理 | 无特定API，前端 `dayjs` 库实现 |
 
 ## 技术栈
 
 ### 前端
-- React 18
-- React Router 6
-- Axios
-- Ant Design Mobile
-- Vite
+| 类别 | 技术/库 | 版本 | 用途 |
+|------|---------|------|------|
+| 核心框架 | React | 18.2.0 | 构建用户界面 |
+| UI组件库 | antd-mobile | 5.32.2 | 移动端UI组件 |
+| 路由 | react-router-dom | 6.21.1 | 前端路由管理 |
+| 状态管理 | zustand | 4.4.7 | 应用状态管理 |
+| HTTP请求 | axios | 1.6.2 | API请求 |
+| 编辑器 | react-quill | 2.0.0 | 富文本编辑 |
+| 日期处理 | dayjs | 1.11.10 | 时间格式化 |
 
 ### 后端
-- Node.js
-- Express
-- MongoDB + Mongoose
-- JWT认证
-- Multer文件上传
+| 类别 | 技术/库 | 版本 | 用途 |
+|------|---------|------|------|
+| 运行环境 | Node.js | - | JavaScript运行环境 |
+| Web框架 | express | 4.18.2 | 后端服务框架 |
+| 数据库 | mongoose | 8.0.0 | MongoDB对象建模 |
+| 认证 | jsonwebtoken | 9.0.2 | JWT令牌生成与验证 |
+| 密码加密 | bcryptjs | 2.4.3 | 密码安全存储 |
+| 文件上传 | multer | 1.4.5-lts.1 | 文件处理 |
+| AI服务 | openai | - | 智能标签生成 |
 
-## 功能特性
+### 开发工具
+| 类别 | 技术/库 | 版本 | 用途 |
+|------|---------|------|------|
+| 构建工具 | vite | 5.0.0 | 前端构建 |
+| 代码规范 | eslint | 8.55.0 | 代码质量检查 |
+| 开发服务器 | nodemon | 3.0.1 | 后端热重载 |
 
-### 登录注册模块
-- 手机号一键登录/注册（验证码）
-- JWT Token认证（24小时有效期）
-- Token自动刷新机制
-- 安全的验证码策略（5分钟有效期，失败5次锁定10分钟）
-- 优雅的登录/注册界面，支持Tab切换
-- 一键退出登录功能
+## 项目结构
 
-### 短图文发布模块
-- 支持文本内容发布
-- 多图上传（最多9张）
-- AI智能标签生成
-- 发布成功后Feed流实时更新
-
-### Feed流功能
-- 瀑布流展示所有用户发布的内容
-- 支持按发布时间排序
-- 滚动加载更多（分页）
-- 下拉刷新功能
-- 卡片式布局，支持多图展示
-- 图片预览功能
-
-### 性能优化
-- 首屏骨架屏加载
-- MongoDB索引优化
-- 分页数据加载
-
-### 安全措施
-- JWT身份验证
-- 接口权限控制
-- 验证码防刷策略
-
-### 埋点系统
-- 支持批量事件上报
-- 异步数据处理
-- 错误容错机制
+```
+news-mobile-app/
+├── frontend/               # 前端应用
+│   ├── public/             # 静态资源
+│   ├── src/                # 源代码
+│   │   ├── components/     # 公共组件
+│   │   ├── pages/          # 页面组件
+│   │   ├── routes/         # 路由配置
+│   │   ├── stores/         # 状态管理
+│   │   ├── utils/          # 工具函数
+│   │   ├── App.jsx         # 根组件
+│   │   └── main.jsx        # 入口文件
+│   ├── index.html          # HTML模板
+│   └── package.json        # 前端依赖
+├── backend/                # 后端服务
+│   ├── src/                # 源代码
+│   │   ├── controllers/    # 控制器
+│   │   ├── models/         # 数据模型
+│   │   ├── routes/         # 路由配置
+│   │   ├── middleware/     # 中间件
+│   │   ├── utils/          # 工具函数
+│   │   └── index.js        # 入口文件
+│   ├── uploads/            # 文件上传目录
+│   └── package.json        # 后端依赖
+```
 
 ## 快速开始
 
 ### 前置要求
-- Node.js 16+
-- MongoDB 4.4+
+- Node.js 14+ 环境
+- MongoDB 4.4+ 数据库
+- 推荐使用 VS Code 编辑器
+- npm 或 yarn 包管理器
 
-### 后端安装与运行
+### 安装与运行
 
-```bash
-cd backend
-npm install
-npm run dev
-```
+#### 后端服务
+1. 进入后端目录
+   ```bash
+   cd backend
+   ```
+2. 安装依赖
+   ```bash
+   npm install
+   ```
+3. 配置环境变量（创建 .env 文件）
+   ```
+   # MongoDB连接字符串
+   MONGODB_URI=mongodb://localhost:27017/info_app
+   
+   # JWT密钥
+   JWT_SECRET=your_super_high_end_secret_key_2024
+   
+   # 服务器端口
+   PORT=3000
+   
+   # AI服务配置
+   VOLC_API_KEY=your_volc_api_key
+   VOLC_MODEL_ID=doubao-seed-1-6-251015
+   
+   # 开发环境标识
+   NODE_ENV=development
+   ```
+4. 启动服务
+   ```bash
+   npm run dev
+   ```
+   服务将在 http://localhost:3000 启动
 
-### 前端安装与运行
+#### 前端应用
+1. 进入前端目录
+   ```bash
+   cd frontend
+   ```
+2. 安装依赖
+   ```bash
+   npm install
+   ```
+3. 启动开发服务器
+   ```bash
+   npm run dev
+   ```
+   应用将在 http://localhost:5173 启动
 
-```bash
-cd frontend
-npm install
-npm run dev
-```
+### 开发测试账号
+- 手机号: 任意有效手机号格式（如13800138000）
+- 验证码: 123456（开发环境固定验证码）
 
-## API文档
+### 项目访问
+- 前端应用: http://localhost:5173
+- 后端API: http://localhost:3000/api
+- 图片资源: http://localhost:3000/uploads
 
-### 认证相关
-
-#### 发送验证码
-- URL: `/api/auth/send-code`
-- Method: `POST`
-- Body: `{ "phone": "13800138000" }`
-
-#### 登录/注册
-- URL: `/api/auth/login`
-- Method: `POST`
-- Body: `{ "phone": "13800138000", "code": "123456" }`
-- Response: `{ "token": "...", "user": {...} }`
-
-#### 刷新Token
-- URL: `/api/auth/refresh`
-- Method: `POST`
-
-### 内容相关
-
-#### 获取Feed流
-- URL: `/api/posts`
-- Method: `GET`
-- Query: `page=1&limit=10&sort=createdAt&order=desc`
-
-#### 发布内容
-- URL: `/api/posts`
-- Method: `POST`
-- Headers: `Authorization: Bearer {token}`
-- Body: `{ "title": "...", "content": "...", "images": [...] }`
-
-#### 上传图片
-- URL: `/api/posts/upload`
-- Method: `POST`
-- Headers: `Authorization: Bearer {token}`
-- Form-data: `images: [文件数组]`
-
-#### AI生成标签
-- URL: `/api/posts/ai-tag`
-- Method: `POST`
-- Body: `{ "content": "..." }`
-
-### 埋点相关
-
-#### 批量上报事件
-- URL: `/api/analytics/batch`
-- Method: `POST`
-- Body: `{ "events": [{ "event": "...", "timestamp": 1234567890, ... }] }`
-
-## 数据库设计
-
-### User集合
-- phone: 手机号（唯一）
-- nickname: 昵称
-- avatar: 头像URL
-- password: 密码（可选）
-- lastLoginAt: 最后登录时间
-- createdAt/updatedAt: 自动时间戳
-
-### Post集合
-- title: 标题
-- content: 内容（必填）
-- images: 图片URL数组
-- tags: 标签数组
-- author: 作者ID（必填）
-- views: 浏览量
-- likes: 点赞数
-- status: 状态（默认published）
-- createdAt: 创建时间
-
-### Analytics集合
-- event: 事件名称（索引）
-- user_id: 用户ID（可选）
-- timestamp: 时间戳
-- url: 页面URL
-- metadata: 附加数据
-
-## 安全策略
-
-1. **JWT安全**：24小时有效期，前端自动刷新
-2. **验证码保护**：
-   - 每手机号每分钟最多请求一次
-   - 验证码5分钟内有效
-   - 5次验证失败锁定10分钟
-3. **接口权限**：发布、上传等敏感接口需要JWT验证
-4. **数据库索引**：关键字段建立索引优化查询性能
-
-## 性能优化方案
-
-### 前端
-- 首屏骨架屏加载
-- 分页数据获取
-- 组件懒加载
-
-### 后端
-- MongoDB索引优化
-- API响应优化
-- 批量数据处理
-
-## 部署说明
-
-### 生产环境构建
-
-```bash
-# 前端构建
-cd frontend
-npm run build
-
-# 后端启动
-cd backend
-npm start
-```
-
-## 开发注意事项
-
-1. 确保MongoDB服务正常运行
-2. 开发环境中API请求使用本地地址
-3. 文件上传功能需要确保uploads目录存在并可写
-4. 生产环境中建议配置环境变量管理敏感信息
-
-## 未来优化方向
-
-1. 添加内容编辑修改功能
-2. 实现富文本编辑器
-3. 增加草稿自动保存功能
-4. 优化图片加载性能（懒加载、压缩）
-5. 添加评论功能
-6. 实现虚拟列表优化长列表性能
-7. 完善文件上传安全验证
-
-## 项目概述
-
-这是一个基于React和Node.js开发的移动端新闻应用，支持用户发布文章、浏览文章列表、AI辅助生成标签等功能。应用采用前后端分离架构，提供流畅的用户体验和完整的功能支持。
-
-## 技术架构
-
-### 整体架构
-
-![系统架构图](https://example.com/system-architecture.png)
-
-### 前端技术栈
-
-| 技术/框架 | 版本 | 用途 |
-|---------|------|------|
-| React | 18.x | 前端UI框架 |
-| Vite | 4.x | 前端构建工具 |
-| React Router | 6.x | 前端路由管理 |
-| React Quill | 2.x | 富文本编辑器 |
-| Ant Design Mobile | 5.x | 移动端UI组件库 |
-| Axios | 1.x | HTTP请求库 |
-| dayjs | 1.x | 日期时间处理 |
-
-### 后端技术栈
-
-| 技术/框架 | 版本 | 用途 |
-|---------|------|------|
-| Node.js | 18.x | JavaScript运行时 |
-| Express | 4.x | Web框架 |
-| MongoDB | 6.x | NoSQL数据库 |
-| Mongoose | 7.x | MongoDB ODM |
-| JWT | - | 用户认证 |
-| Multer | 1.x | 文件上传处理 |
-| OpenAI SDK | - | AI服务集成 |
-
-## 目录结构
-
-### 前端目录结构
-
-```
-frontend/
-├── public/            # 静态资源
-├── src/
-│   ├── assets/        # 项目资源文件
-│   ├── components/    # 通用组件
-│   ├── pages/         # 页面组件
-│   │   ├── CreatePost.jsx     # 创建帖子页面
-│   │   ├── Home.jsx           # 首页
-│   │   └── Login.jsx          # 登录/注册页面
-│   ├── routes/        # 路由配置
-│   ├── services/      # API服务
-│   │   ├── axios.js     # Axios配置
-│   │   └── analytics.js # 埋点分析服务
-│   ├── store/         # 状态管理
-│   ├── styles/        # 全局样式
-│   └── utils/         # 工具函数
-├── index.html         # HTML入口
-├── package.json       # 项目配置
-└── vite.config.js     # Vite配置
-```
-
-### 后端目录结构
-
-```
-backend/
-├── src/
-│   ├── controllers/   # 控制器
-│   │   ├── authController.js   # 认证控制器
-│   │   └── postController.js   # 帖子控制器
-│   ├── middleware/    # 中间件
-│   │   └── authMiddleware.js   # 认证中间件
-│   ├── models/        # 数据模型
-│   │   ├── User.js           # 用户模型
-│   │   ├── Post.js           # 帖子模型
-│   │   └── Analytics.js      # 埋点模型
-│   ├── routes/        # 路由配置
-│   │   ├── auth.js         # 认证路由
-│   │   ├── posts.js        # 帖子路由
-│   │   └── analytics.js    # 埋点路由
-│   ├── services/      # 服务层
-│   │   └── aiService.js     # AI服务
-│   ├── utils/         # 工具函数
-│   └── index.js       # 应用入口
-├── uploads/           # 上传文件存储
-├── package.json       # 项目配置
-└── .env               # 环境变量
-```
-
-## 核心功能模块
+## RESTful接口设计
 
 ### 1. 用户认证模块
 
-#### 功能实现状态
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| POST | `/api/auth/send-code` | 发送验证码 | phone: String (手机号) | `{ success: Boolean, message: String, debugCode?: String }` |
+| POST | `/api/auth/register` | 用户注册 | phone: String (手机号)<br>code: String (验证码)<br>nickname: String (昵称) | `{ token: String, user: { phone: String, nickname: String, avatar: String } }` |
+| POST | `/api/auth/login` | 用户登录 | phone: String (手机号)<br>code: String (验证码) | `{ token: String, user: { phone: String, nickname: String, avatar: String } }` |
+| POST | `/api/auth/refresh` | 刷新Token | token: String (当前token) | `{ token: String, expiresAt: Number }` |
+| POST | `/api/auth/logout` | 用户登出 | token: String (可选) | `{ success: Boolean, message: String }` |
 
-- ✅ 支持登录和注册（手机号+验证码）
-- ✅ 支持退出登录
-- ✅ 手机号登录/注册流程：输入手机号 → 获取验证码 → 登录成功存储 JWT token
-- ✅ 验证码策略：每手机号/IP 每分钟 1 次，超过锁定 10 分钟；有效期 5 分钟
-- ✅ Token 策略：JWT 有效期 24 小时，前端在过期前 5 分钟调用 /api/auth/refresh 获取新 token
-- ✅ 存储策略：localStorage + Axios 拦截器自动刷新
-- ✅ 退出登录：清除本地 token；可记录 logout 时间用于安全审计
+### 2. 内容管理模块
 
-#### Token 与验证码安全策略
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| GET | `/api/posts` | 获取文章列表 | page: Number (页码，默认1)<br>limit: Number (每页数量，默认10)<br>t: String (时间戳，可选) | `{ list: Array, hasMore: Boolean, total: Number }` |
+| GET | `/api/posts/:id` | 获取文章详情 | id: String (文章ID) | `{ _id: String, title: String, content: String, images: Array, tags: Array, author: Object, likes: Number, commentsCount: Number, views: Number, isLiked: Boolean, createdAt: String }` |
+| POST | `/api/posts` | 创建文章 | title: String (标题)<br>content: String (内容)<br>images: Array (图片URL数组)<br>status: String (状态，默认published) | `{ _id: String, title: String, content: String, images: Array, tags: Array, author: Object, createdAt: String }` |
+| PUT | `/api/posts/:id` | 更新文章 | id: String (文章ID)<br>title: String (标题)<br>content: String (内容)<br>images: Array (图片URL数组) | `{ _id: String, title: String, content: String, images: Array, tags: Array, updatedAt: String }` |
+| DELETE | `/api/posts/:id` | 删除文章 | id: String (文章ID) | `{ success: Boolean, message: String }` |
+| POST | `/api/posts/upload` | 上传图片 | file: File (图片文件) | `{ url: String, filename: String }` |
+| POST | `/api/posts/ai-label` | AI生成标签 | content: String (文章内容) | `{ tags: Array<String> }` |
 
-| 策略 | 描述 | 技术实现 |
-|------|------|----------|
-| JWT 有效期 | 24 小时 | 后端签发 token 时设置 exp |
-| Token 刷新 | 前端在 token 到期前 5 分钟调用 /api/auth/refresh 获取新 token | Axios 拦截器自动刷新；失败重试 2 次 → 弹出登录 |
-| 存储 | 前端 localStorage | Axios 拦截器统一读取并刷新 token |
-| 验证码请求限制 | 每手机号每分钟 1 次 | 后端记录手机号 + 时间戳 |
-| 验证码锁定 | 超过尝试次数锁定 10 分钟 | 后端记录手机号 + IP + 尝试次数 |
-| 验证码有效期 | 5 分钟 | 后端签发验证码时设置过期时间 |
-| 敏感接口 | 发布/编辑/删除内容 | 后端 JWT 中间件校验 token & 权限 |
+### 3. 互动功能模块
 
-### 2. 短图文发布模块
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| POST | `/api/posts/:id/like` | 点赞文章 | id: String (文章ID) | `{ success: Boolean, likes: Number, isLiked: Boolean }` |
+| POST | `/api/posts/:id/unlike` | 取消点赞 | id: String (文章ID) | `{ success: Boolean, likes: Number, isLiked: Boolean }` |
+| GET | `/api/posts/:id/comments` | 获取评论列表 | id: String (文章ID)<br>page: Number (页码，默认1)<br>limit: Number (每页数量，默认20) | `{ list: Array, hasMore: Boolean, total: Number }` |
+| POST | `/api/posts/:id/comments` | 发表评论 | id: String (文章ID)<br>content: String (评论内容) | `{ _id: String, user: Object, content: String, createdAt: String }` |
+| DELETE | `/api/posts/:id/comments/:commentId` | 删除评论 | id: String (文章ID)<br>commentId: String (评论ID) | `{ success: Boolean, message: String }` |
+| POST | `/api/posts/:id/view` | 增加阅读数 | id: String (文章ID) | `{ success: Boolean, views: Number }` |
 
-#### 功能实现状态
+### 4. 用户相关模块
 
-- ✅ 短图文编辑器，支持分别插入文字和图片
-- ✅ 支持内容发布
-- ✅ 支持对已经发布内容的二次编辑修改
-- ✅ 支持富文本编辑器（react-quill / draft-js）
-- ✅ 支持编辑过程中草稿每30s自动云端存储，再次进入编辑器时自动恢复草稿
-- ✅ 断网后仍可编辑，恢复网络后自动保存修改
-- ✅ 发文后利用 AI 能力识别内容标签，在后台存储
-- ✅ 内容详情页文末自动推荐出相同标签的内容
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| GET | `/api/users/me` | 获取当前用户信息 | 无（通过Token获取） | `{ _id: String, phone: String, nickname: String, avatar: String, createdAt: String }` |
+| PUT | `/api/users/me` | 更新用户信息 | nickname: String (昵称)<br>avatar: String (头像URL) | `{ _id: String, phone: String, nickname: String, avatar: String }` |
+| GET | `/api/users/me/posts` | 获取我的文章 | page: Number (页码，默认1)<br>limit: Number (每页数量，默认10) | `{ list: Array, hasMore: Boolean, total: Number }` |
+| GET | `/api/users/me/liked` | 获取我的点赞 | page: Number (页码，默认1)<br>limit: Number (每页数量，默认10) | `{ list: Array, hasMore: Boolean, total: Number }` |
 
-#### 实现细节
+### 5. 标签相关模块
 
-| 功能 | 实现方式 / 技术细节 | 接口说明 |
-|------|-------------------|----------|
-| 文本输入 | 多行文本，支持段落；最大字数 2000；支持 emoji / 特殊字符，超限提示 | - |
-| 图片上传 | 多图上传，最大 5MB；单篇文章最多 9 张；前端 AntD Mobile Upload + 后端 multer 处理；文件类型限制 jpg/png/webp | POST /api/posts/upload<br>form-data: images[] |
-| 富文本编辑 | react-quill / draft-js；工具栏：粗体、标题、列表、引用；编辑器内容存储 HTML 或 Delta JSON 格式 | 前端组件实现 |
-| 自动草稿保存 | 每 30s 保存 localStorage & 云端；使用 diff 比对避免重复保存；失败重试机制 | POST /api/drafts/save |
-| 离线编辑 | 使用 navigator.onLine + window.addEventListener('online/offline') 监听网络状态；无网保存到 IndexedDB/localStorage；网络恢复自动同步；同步状态标记 synced | 本地 IndexedDB/localStorage |
-| 发布内容 | 上传至后端 MongoDB，包含 text, images, tags；tags 加索引便于搜索/推荐 | POST /api/posts<br>body: { text, images, tags } |
-| 编辑已发布内容 | 修改并重新提交；可覆盖或保存历史版本；更新 updatedAt | PUT /api/posts/:id |
-| AI 标签识别 | 发布内容时实时调用 AI 接口生成标签 → 后端存储到 posts.tags；可定期异步更新历史内容；可返回 confidence | POST /api/ai/label<br>body: { content } |
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| GET | `/api/tags` | 获取热门标签 | limit: Number (数量限制，默认20) | `{ tags: Array<{ name: String, count: Number }> }` |
+| GET | `/api/tags/:name/posts` | 获取标签相关文章 | name: String (标签名称)<br>page: Number (页码，默认1)<br>limit: Number (每页数量，默认10) | `{ list: Array, hasMore: Boolean, total: Number }` |
 
-### 3. Feed流功能
+### 6. 系统管理模块
 
-#### 功能实现状态
+| 方法 | 路径 | 功能 | 参数 | 返回 |
+|------|------|------|------|------|
+| GET | `/api/analytics/dashboard` | 获取仪表盘数据 | 无 | `{ totalPosts: Number, totalUsers: Number, totalComments: Number, todayPosts: Number }` |
+| GET | `/api/analytics/trends` | 获取趋势数据 | startDate: String (开始日期)<br>endDate: String (结束日期) | `{ dates: Array, posts: Array, users: Array }` |
 
-- ✅ 所有短图文内容在信息流里展示
-- ✅ 支持按照发布时间排序
-- ✅ 支持滚动加载更多
-- ✅ 支持下拉刷新功能（更新当前页面最新内容，显示刷新状态）
-- ✅ 性能优化：首屏要求LCP 2.5s内，滚动过程中帧率稳定在 55fps 以上
+### 接口设计规范
 
-#### 长文、多图适配策略
+#### 认证机制
+- 所有需要认证的接口使用JWT Token验证
+- Token通过请求头Authorization传递：`Bearer {token}`
+- Token有效期为24小时，可通过refresh接口刷新
 
-1. **长文折叠**：默认显示 3 行，点击"展开全文"，动态调整卡片高度
-2. **多图排版**：
-   - 1 张图：全宽显示
-   - 2–3 张图：单行排列
-   - 4–9 张图：2x2 或 3x3 网格
-3. **图片优化**：懒加载 + 压缩（前端压缩 + CDN 缓存）
+#### 分页设计
+- 列表类接口统一使用page和limit参数进行分页
+- 响应中包含hasMore字段标识是否还有更多数据
+- 响应中包含total字段显示总数
 
-#### 实现细节
+#### 错误处理
+- 统一的错误响应格式：`{ success: false, code: String, message: String }`
+- 常见错误码：
+  - 400: 参数错误
+  - 401: 未授权
+  - 403: 禁止访问
+  - 404: 资源不存在
+  - 500: 服务器错误
 
-| 功能 | 实现方式 / 技术细节 | 接口说明 |
-|------|-------------------|----------|
-| 列表展示 | 卡片式，按时间倒序；长文折叠 3 行，点击"展开全文"；多图网格布局（1–3 张单行，4–9 张 2x2 或 3x3）；图片懒加载 + 压缩；卡片显示作者、发布时间、标签 | GET /api/posts?page=1&limit=10 |
-| 上拉加载 | 分页接口，加载更多内容 | 同上 |
-| 下拉刷新 | 动画显示刷新状态；禁用上拉加载避免接口冲突；获取自上次刷新时间的新内容 | GET /api/posts?since=<last_timestamp> |
-| 性能优化 | 虚拟列表渲染（react-window / react-virtualized）；useCallback + 节流函数减少重复渲染；首屏骨架屏 | - |
+#### 参数校验
+- 所有输入参数进行严格校验
+- 手机号格式验证（中国大陆手机号格式）
+- 字符串长度限制
+- 文件类型和大小限制（图片最大5MB）
 
-## 数据库设计（MongoDB）
+#### 安全措施
+- CORS跨域配置
+- 请求频率限制
+- SQL注入防护
+- XSS攻击防护
+- 敏感信息加密存储
 
-### 用户表 (users)
+## 数据库设计
 
-| 字段名 | 类型 | 描述 | 默认值 | 索引 |
-|-------|------|------|-------|------|
-| phone | String | 手机号（唯一） | 必填 | 唯一索引 |
-| nickname | String | 用户昵称 | 新用户 | - |
-| avatar | String | 头像URL | 空字符串 | - |
-| lastLoginAt | Date | 最后登录时间 | - | - |
-| createdAt | Date | 创建时间 | 自动生成 | 索引 |
-| updatedAt | Date | 更新时间 | 自动生成 | - |
-| isRiskAccount | Boolean | 风险账号标记 | false | - |
-| riskScore | Number | 风险评分 | 0 | - |
-
-### 帖子表 (posts)
-
-| 字段名 | 类型 | 描述 | 默认值 | 索引 |
-|-------|------|------|-------|------|
-| title | String | 标题 | 可选 | - |
-| content | String | 内容 | 必填 | - |
-| images | Array | 图片URL数组 | [] | - |
-| tags | Array | 标签数组 | [] | 多键索引 |
-| status | String | 状态(draft/published) | published | - |
-| author | ObjectId | 作者ID，关联User表 | 必填 | 索引 |
-| likes | Number | 点赞数 | 0 | - |
-| views | Number | 浏览量 | 0 | - |
-| aiConfidence | Number | AI识别置信度 | - | - |
-| synced | Boolean | 同步状态（离线编辑） | true | - |
-| createdAt | Date | 创建时间 | 自动生成 | 索引（降序） |
-| updatedAt | Date | 更新时间 | 自动生成 | - |
-
-### 评论表 (comments)
+### User模型
 
 | 字段名 | 类型 | 描述 | 默认值 | 索引 |
 |-------|------|------|-------|------|
-| postId | ObjectId | 帖子ID，关联Post表 | 必填 | 索引 |
-| author | ObjectId | 评论者ID，关联User表 | 必填 | 索引 |
-| content | String | 评论内容 | 必填 | - |
-| parentId | ObjectId | 父评论ID（回复） | null | 索引 |
-| createdAt | Date | 创建时间 | 自动生成 | - |
-| updatedAt | Date | 更新时间 | 自动生成 | - |
+| `phone` | String | 手机号（唯一） | 必填 | 唯一索引 |
+| `nickname` | String | 用户昵称 | "新用户" | - |
+| `avatar` | String | 头像URL | "" | - |
+| `password` | String | 密码（加密存储） | undefined | - |
+| `createdAt` | Date | 创建时间 | 自动生成 | - |
+| `updatedAt` | Date | 更新时间 | 自动生成 | - |
 
-### 验证码表 (verification_codes)
-
-| 字段名 | 类型 | 描述 | 默认值 | 索引 |
-|-------|------|------|-------|------|
-| phone | String | 手机号 | 必填 | 索引 |
-| code | String | 验证码 | 必填 | - |
-| ip | String | 请求IP | 必填 | - |
-| attempts | Number | 尝试次数 | 0 | - |
-| lockedUntil | Date | 锁定时间 | null | - |
-| createdAt | Date | 创建时间 | 自动生成 | 索引 |
-| expiresAt | Date | 过期时间 | 创建时间+5分钟 | 索引（TTL） |
-
-### 埋点数据表 (analytics)
+### Post模型
 
 | 字段名 | 类型 | 描述 | 默认值 | 索引 |
 |-------|------|------|-------|------|
-| event | String | 事件名称 | 必填 | 索引 |
-| user_id | ObjectId | 用户ID，关联User表 | 可选 | 索引 |
-| post_id | ObjectId | 帖子ID，关联Post表 | 可选 | - |
-| timestamp | Date | 时间戳 | 当前时间 | 索引 |
-| url | String | 页面URL | - | - |
-| device_id | String | 设备ID | - | - |
-| platform | String | 平台信息 | - | - |
-| network_type | String | 网络类型 | - | - |
-| app_version | String | 应用版本 | - | - |
-| tags | Array | 标签数组（AI标签事件） | [] | - |
-| confidence | Number | 置信度（AI标签事件） | - | - |
-| success | Boolean | 成功标志（操作类事件） | - | - |
-| metadata | Mixed | 额外JSON数据 | - | - |
-
-## API接口设计（RESTful）
-
-### 认证相关接口
-
-#### 1. 发送验证码
-
-**URL**: `/api/auth/send-code`
-**Method**: `POST`
-**Request Body**:
-```json
-{
-  "phone": "13800138000"
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "message": "验证码已发送",
-  "cooldown": 60
-}
-```
-
-#### 2. 用户登录/注册
-
-**URL**: `/api/auth/login`
-**Method**: `POST`
-**Request Body**:
-```json
-{
-  "phone": "13800138000",
-  "code": "123456"
-}
-```
-**Response**:
-```json
-{
-  "token": "jwt_token_here",
-  "user": {
-    "phone": "13800138000",
-    "nickname": "新用户",
-    "avatar": ""
-  },
-  "expiresAt": "2024-01-01T00:00:00Z"
-}
-```
-
-#### 3. 刷新Token
-
-**URL**: `/api/auth/refresh`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {current_token}`
-
-**Response**:
-```json
-{
-  "token": "new_jwt_token_here",
-  "expiresAt": "2024-01-01T00:00:00Z"
-}
-```
-
-#### 4. 退出登录
-
-**URL**: `/api/auth/logout`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "退出登录成功"
-}
-```
-
-### 帖子相关接口
-
-#### 1. 获取帖子列表（Feed流）
-
-**URL**: `/api/posts`
-**Method**: `GET`
-**Query Parameters**:
-- `page`: 页码（默认1）
-- `limit`: 每页数量（默认10）
-- `since`: 上次刷新时间戳（下拉刷新时使用）
-
-**Response**:
-```json
-{
-  "posts": [
-    {
-      "_id": "post_id",
-      "title": "文章标题",
-      "content": "文章内容摘要",
-      "images": ["image_url"],
-      "tags": ["标签1", "标签2"],
-      "likes": 10,
-      "views": 100,
-      "author": {
-        "_id": "user_id",
-        "nickname": "作者昵称",
-        "avatar": "作者头像"
-      },
-      "createdAt": "2023-01-01T00:00:00Z",
-      "updatedAt": "2023-01-01T00:00:00Z"
-    }
-  ],
-  "hasMore": true,
-  "total": 100
-}
-```
-
-#### 2. 获取帖子详情
-
-**URL**: `/api/posts/:id`
-**Method**: `GET`
-
-**Response**:
-```json
-{
-  "_id": "post_id",
-  "title": "文章标题",
-  "content": "完整文章内容",
-  "images": ["image_url1", "image_url2"],
-  "tags": ["标签1", "标签2"],
-  "likes": 10,
-  "views": 101,
-  "author": {
-    "_id": "user_id",
-    "nickname": "作者昵称",
-    "avatar": "作者头像"
-  },
-  "createdAt": "2023-01-01T00:00:00Z",
-  "updatedAt": "2023-01-01T00:00:00Z",
-  "relatedPosts": ["post_id1", "post_id2"]
-}
-```
-
-#### 3. 创建帖子
-
-**URL**: `/api/posts`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Request Body**:
-```json
-{
-  "title": "文章标题",
-  "content": "文章内容",
-  "images": ["image_url1", "image_url2"],
-  "tags": ["标签1", "标签2"],
-  "status": "published"
-}
-```
-**Response**:
-```json
-{
-  "_id": "post_id",
-  "title": "文章标题",
-  "content": "文章内容",
-  "images": ["image_url1", "image_url2"],
-  "tags": ["标签1", "标签2", "AI生成标签1"],
-  "author": "user_id",
-  "createdAt": "2023-01-01T00:00:00Z",
-  "aiConfidence": 0.92
-}
-```
-
-#### 4. 更新帖子
-
-**URL**: `/api/posts/:id`
-**Method**: `PUT`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Request Body**:
-```json
-{
-  "title": "更新的标题",
-  "content": "更新的内容",
-  "images": ["image_url1"],
-  "tags": ["更新的标签"],
-  "status": "published"
-}
-```
-**Response**:
-```json
-{
-  "_id": "post_id",
-  "title": "更新的标题",
-  "content": "更新的内容",
-  "images": ["image_url1"],
-  "tags": ["更新的标签", "AI生成标签"],
-  "author": "user_id",
-  "updatedAt": "2023-01-02T00:00:00Z"
-}
-```
-
-#### 5. 删除帖子
-
-**URL**: `/api/posts/:id`
-**Method**: `DELETE`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Response**:
-```json
-{
-  "success": true,
-  "message": "帖子删除成功"
-}
-```
-
-#### 6. 图片上传
-
-**URL**: `/api/posts/upload`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Form Data**:
-- `images`: 文件数组（最多9个，单个最大5MB）
-
-**Response**:
-```json
-{
-  "files": [
-    {
-      "filename": "image1.jpg",
-      "url": "/uploads/image1.jpg"
-    },
-    {
-      "filename": "image2.jpg",
-      "url": "/uploads/image2.jpg"
-    }
-  ]
-}
-```
-
-#### 7. AI生成标签
-
-**URL**: `/api/ai/label`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Request Body**:
-```json
-{
-  "content": "需要分析的文本内容"
-}
-```
-**Response**:
-```json
-{
-  "tags": ["标签1", "标签2", "标签3"],
-  "confidence": 0.95
-}
-```
-
-#### 8. 保存草稿
-
-**URL**: `/api/drafts/save`
-**Method**: `POST`
-**Headers**:
-- `Authorization: Bearer {token}`
-
-**Request Body**:
-```json
-{
-  "postId": "existing_post_id",
-  "title": "草稿标题",
-  "content": "草稿内容",
-  "images": ["image_url"],
-  "tags": ["标签"],
-  "lastEdited": "2023-01-01T00:00:00Z"
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "draftId": "draft_id",
-  "savedAt": "2023-01-01T00:00:00Z"
-}
-```
-
-### 埋点相关接口
-
-#### 1. 批量上报埋点数据
-
-**URL**: `/api/analytics/batch`
-**Method**: `POST`
-
-**Request Body**:
-```json
-{
-  "events": [
-    {
-      "event": "page_view",
-      "timestamp": "2023-01-01T00:00:00Z",
-      "page_id": "home",
-      "device_id": "device123",
-      "platform": "mobile",
-      "network_type": "4g",
-      "app_version": "1.0.0",
-      "metadata": {}
-    },
-    {
-      "event": "click_publish",
-      "timestamp": "2023-01-01T00:01:00Z",
-      "user_id": "user123",
-      "metadata": {}
-    }
-  ]
-}
-```
-**Response**:
-```json
-{
-  "success": true,
-  "count": 2,
-  "totalReceived": 2
-}
-```
-
-## 性能优化方案
-
-### 前端性能优化
-
-1. **虚拟列表渲染 Feed流**
-   - 使用 react-window / react-virtualized 实现长列表虚拟化
-   - 仅渲染可视区域内的元素，大幅减少DOM节点数量
-   - 内存占用优化，提升滚动流畅度
-
-2. **图片懒加载**
-   - 实现基于Intersection Observer的图片懒加载
-   - 首屏只加载可视区域内图片
-   - 预加载下一个可视区域图片
-
-3. **首屏骨架屏**
-   - 实现内容加载前的骨架屏占位
-   - 减少用户感知的加载时间
-   - 提升用户体验
-
-4. **代码优化**
-   - 使用 useCallback + useMemo 减少重复渲染
-   - 实现节流函数优化滚动事件处理
-   - 组件分割和代码分割减少首屏加载体积
-
-5. **缓存策略**
-   - 实现有效的资源缓存策略
-   - 关键数据本地持久化
-   - 减少重复请求
-
-### 后端性能优化
-
-1. **API响应优化**
-   - 目标：API响应时间 < 300ms
-   - 实现高效的数据库查询
-   - 使用聚合查询减少多次请求
-
-2. **MongoDB索引优化**
-   - 为查询频繁的字段创建索引：createdAt, authorId, tags
-   - 复合索引优化复杂查询
-   - 定期监控和维护索引性能
-
-3. **缓存机制**
-   - 实现Redis缓存热门内容
-   - CDN缓存静态资源和图片
-   - 响应数据压缩传输
-
-4. **异步处理**
-   - AI标签生成异步化
-   - 文件上传处理异步化
-   - 使用消息队列处理耗时操作
-
-### 性能指标
-
-- **LCP (Largest Contentful Paint)**: < 2.5s
-- **滚动帧率**: ≥ 55fps
-- **首次内容绘制 (FCP)**: < 1.5s
-- **总阻塞时间 (TBT)**: < 200ms
-- **后端API响应时间**: < 300ms
-
-## 安全措施
-
-### 1. 登录验证码限制与锁定策略
-
-- **请求限制**：
-  - 同一手机号或账号 1 分钟内最多请求一次登录/注册接口
-  - 前端实现倒计时，后端严格校验时间间隔
-
-- **风险账号识别**：
-  - 1 小时内累计请求超过 10 次，后端标记为风险账号
-  - 风险账号在所有敏感接口调用时返回特定状态码（429 或自定义 risk_account）
-  - 前端显示风控提示界面
-
-- **验证码有效期**：
-  - 验证码默认 5 分钟内有效，过期需重新获取
-  - 实现验证码自动过期和清理机制
-
-### 2. 认证与权限控制
-
-- **JWT验证**：所有敏感接口必须验证JWT
-- **权限校验**：发布、编辑、删除等操作必须校验用户权限
-- **Token刷新**：实现安全的Token刷新机制，避免重复登录
-- **Token过期处理**：前端自动处理过期逻辑，提升用户体验
-
-### 3. 数据安全
-
-- **输入验证**：前后端双重验证用户输入
-- **文件上传安全**：严格校验文件类型和大小，防止恶意上传
-- **数据加密**：敏感信息传输加密
-- **防XSS攻击**：内容过滤和转义
-- **防CSRF攻击**：实现CSRF令牌机制
-
-### 4. 其他安全措施
-
-- **CORS配置**：仅允许指定域名访问
-- **错误处理**：统一错误处理，避免敏感信息泄露
-- **日志记录**：关键操作和异常日志记录
-- **API限流**：实现API请求限流，防止恶意请求
-
-## 埋点设计
-
-### 1. 埋点表设计（关键事件）
-
-| 埋点名 | 说明 | 字段 | 存储 & 查看方案 |
-|-------|------|------|---------------|
-| page_view | 页面曝光 | page_id, device_id, platform, network_type, app_version | 前端 JS 触发 → POST /api/analytics → MongoDB analytics 表；后台提供报表查看 |
-| click_publish | 点击发布按钮 | user_id, device_id, timestamp | 同上 |
-| post_publish | 发布成功 | post_id, user_id, timestamp | 同上 |
-| post_edit | 编辑内容 | post_id, user_id, timestamp | 同上 |
-| ai_label_generate | AI标签生成 | tags[], confidence, user_id | 同上；可附加 confidence |
-| refresh_pull | 下拉刷新动作 | timestamp, device_id, success | 前端节流发送 → 后端存储；可记录成功/失败标志 |
-
-### 2. 高频事件处理（滚动、曝光、长列表交互）
-
-- **事件示例**：feed_scroll（滚动距离）、卡片曝光、内容浏览深度
-- **解决方案**：
-  1. **使用专用埋点系统**
-     - 可选：Slardar 或 Tea（字节开源或企业内部工具）
-     - 支持高频事件的批量、异步收集与存储
-  
-  2. **前端缓存 + 批量上报**
-     - 前端队列缓存事件，达到数量（50条）或时间阈值（30秒）批量发送
-     - 避免每次滚动都发送 HTTP 请求
-     - 实现离线缓存，网络恢复后自动上报
-  
-  3. **MongoDB 仅存低频关键事件**
-     - 发布、编辑、AI标签生成、点击发布按钮
-     - 高频曝光、滚动、下拉刷新由专用系统处理
-
-### 3. 数据分析与报表
-
-- **低频事件（MongoDB）**：后台可直接生成报表，用于核心业务分析
-- **高频事件（Slardar/Tea）**：提供实时或批量分析接口，可统计平均滚动深度、卡片曝光率、用户行为路径等
-- **可扩展字段**：
-  - 设备信息：device_id, platform
-  - 网络信息：network_type
-  - App 版本：app_version
-  - 用户 ID、标签置信度等
-
-## 配置与部署
-
-### 环境变量
-
-**后端环境变量 (.env)**:
-
-```dotenv
-# 服务器配置
-PORT=3000
-
-# 数据库连接
-MONGO_URI=mongodb://localhost:27017/news-app
-
-# JWT配置
-JWT_SECRET=your_super_high_end_secret_key_2024
-JWT_EXPIRES_IN=24h
-
-# AI服务配置
-VOLC_API_KEY=1b59816c-cc5f-4878-9062-16a15ec048f9
-VOLC_MODEL_ID=doubao-seed-1-6-251015
-
-# 验证码配置
-VERIFICATION_CODE_EXPIRES=5m
-VERIFICATION_CODE_COOLDOWN=60s
-VERIFICATION_CODE_LOCK_DURATION=10m
-
-# 文件上传配置
-UPLOAD_MAX_SIZE=5mb
-UPLOAD_PATH=./uploads
-```
-
-### 项目依赖
-
-**前端依赖 (package.json)**:
-
-| 依赖名称 | 版本 | 用途 |
-|---------|------|------|
-| antd-mobile | ^5.34.0 | 移动端UI组件库 |
-| antd-mobile-icons | ^0.3.0 | 图标库 |
-| axios | ^1.6.2 | HTTP请求库 |
-| react | ^18.2.0 | 前端UI框架 |
-| react-dom | ^18.2.0 | React DOM操作 |
-| react-quill | ^2.0.0 | 富文本编辑器 |
-| react-router-dom | ^6.20.0 | 路由管理 |
-| react-window | ^1.8.9 | 虚拟列表 |
-| dayjs | ^1.11.10 | 日期处理 |
-
-**后端依赖 (package.json)**:
-
-| 依赖名称 | 版本 | 用途 |
-|---------|------|------|
-| body-parser | ^2.2.0 | 请求体解析 |
-| cors | ^2.8.5 | 跨域资源共享 |
-| dotenv | ^16.6.1 | 环境变量管理 |
-| express | ^4.21.2 | Web框架 |
-| fs-extra | ^11.3.2 | 文件系统操作增强 |
-| jsonwebtoken | ^9.0.2 | JWT认证 |
-| mongoose | ^8.20.1 | MongoDB ODM |
-| morgan | ^1.10.0 | HTTP请求日志 |
-| multer | ^1.4.5-lts.1 | 文件上传处理 |
-| openai | ^6.9.1 | AI服务集成 |
-| rate-limiter-flexible | ^2.4.1 | 限流 |
-
-### 前端构建配置 (vite.config.js)
-
-```javascript
-import { defineConfig } from 'vite'
-import react from '@vitejs/plugin-react'
-
-export default defineConfig({
-  plugins: [react()],
-  server: {
-    proxy: {
-      '/api': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      },
-      '/uploads': {
-        target: 'http://localhost:3000',
-        changeOrigin: true,
-      }
-    }
-  },
-  build: {
-    chunkSizeWarningLimit: 1000,
-    rollupOptions: {
-      output: {
-        manualChunks: {
-          'react-vendor': ['react', 'react-dom'],
-          'router-vendor': ['react-router-dom'],
-          'ui-vendor': ['antd-mobile', 'antd-mobile-icons'],
-          'editor': ['react-quill']
-        }
-      }
-    }
-  }
-})
-```
-
-### 开发环境启动
-
-**前端启动**:
-```bash
-cd frontend
-npm install
-npm run dev
-```
-
-**后端启动**:
-```bash
-cd backend
-npm install
-npm run dev
-```
-
-### 生产环境部署
-
-**前端构建**:
-```bash
-cd frontend
-npm run build
-```
-
-**后端部署**:
-```bash
-cd backend
-npm start
-```
-
-## 测试与使用指南
-
-### 开发环境测试账号
-
-- **手机号**: 任意有效手机号格式（如13800138000）
-- **验证码**: 1234（开发环境固定验证码）
+| `title` | String | 文章标题 | "" | - |
+| `content` | String | 文章内容 | 必填 | - |
+| `images` | Array<String> | 图片URL数组 | [] | - |
+| `tags` | Array<String> | 标签数组 | [] | - |
+| `author` | ObjectId | 作者ID，关联User | 必填 | 索引 |
+| `views` | Number | 浏览量 | 0 | - |
+| `likes` | Number | 点赞数 | 0 | - |
+| `likesUsers` | Array<ObjectId> | 点赞用户列表 | [] | - |
+| `comments` | Array<Comment> | 评论列表（嵌套文档） | [] | - |
+| `commentsCount` | Number | 评论数量 | 0 | - |
+| `status` | String | 状态（published/draft） | "published" | - |
+| `createdAt` | Date | 创建时间 | 自动生成 | 索引（降序） |
+
+### 评论子文档结构
+
+| 字段名 | 类型 | 描述 | 默认值 |
+|-------|------|------|-------|
+| `user` | ObjectId | 评论者ID，关联User | 必填 |
+| `content` | String | 评论内容 | 必填 |
+| `createdAt` | Date | 创建时间 | 自动生成 |
+
+### 验证码记录模型
+
+| 字段名 | 类型 | 描述 | 默认值 |
+|-------|------|------|-------|
+| `phone` | String | 手机号 | 必填 |
+| `code` | String | 验证码 | 必填 |
+| `ip` | String | 请求IP | 必填 |
+| `attempts` | Number | 尝试次数 | 0 |
+| `expiresAt` | Date | 过期时间 | 创建时间+5分钟 |
+
+## 开发说明
+
+### 代码规范
+- 前端使用ESLint进行代码质量检查
+- 遵循React Hooks最佳实践
+- 组件化开发，提高代码复用性
+- 使用CSS变量进行样式管理
+
+### 安全注意事项
+- 敏感信息使用环境变量存储
+- 密码使用bcrypt加密存储
+- API接口添加JWT认证中间件保护
+- 验证码防刷策略（5分钟有效期）
+- 文件上传安全验证
 
 ### 开发注意事项
+1. 确保MongoDB服务正常运行
+2. 开发环境中API请求通过Vite代理到后端
+3. 文件上传功能需要确保uploads目录存在并可写
+4. 生产环境中建议配置环境变量管理敏感信息
 
-1. **模拟数据模式**：系统支持模拟数据模式，在数据库连接不可用时仍能提供基本功能
-2. **AI服务配置**：请确保正确配置环境变量中的AI服务密钥
-3. **文件上传**：确保uploads目录存在并有写入权限
-4. **API代理**：前端已配置API代理，将/api路径代理到后端服务
+## 架构设计
 
-## License
+### 系统整体架构
 
-MIT
+这是一个基于前后端分离架构的移动端资讯应用，采用现代微服务设计理念，实现了高内聚、低耦合的系统架构。整体架构分为前端展示层、后端服务层、数据存储层和外部服务层四个主要部分。
+
+![系统架构图](./assets/5.png)
+
+### 前端架构设计
+
+#### 组件层次结构
+
+前端采用组件化、模块化设计，主要分为以下层次：
+
+1. **路由层**：基于React Router管理应用路由，实现页面跳转和导航
+2. **页面层**：核心业务页面，如登录页、首页、详情页等
+3. **组件层**：可复用UI组件，按功能和业务领域划分
+4. **服务层**：封装API调用、数据处理等业务逻辑
+5. **状态管理层**：使用Zustand管理全局状态
+6. **工具层**：提供通用工具函数和辅助方法
+
+#### 数据流设计
+
+前端数据流采用单向数据流模式，结合本地状态和全局状态管理：
+
+![数据流设计图](./assets/1.png)
+
+核心数据流处理方式：
+- **页面内状态**：使用React useState和useReducer管理组件局部状态
+- **全局状态**：使用Zustand管理跨组件共享状态（如用户信息、登录状态）
+- **数据持久化**：使用localStorage和sessionStorage缓存关键数据
+- **API交互**：通过axios封装统一的API请求，处理请求/响应拦截
+
+#### 响应式设计
+
+- 基于Ant Design Mobile组件库实现移动端响应式界面
+- 支持不同屏幕尺寸的自适应布局
+- 实现主题切换和深色模式支持
+
+### 后端架构设计
+
+#### 服务层结构
+
+后端采用典型的MVC架构模式，按功能模块组织代码：
+
+1. **路由层**：定义API端点和请求处理函数映射
+2. **控制器层**：处理业务逻辑，协调模型和视图
+3. **服务层**：封装核心业务规则和外部服务调用
+4. **模型层**：定义数据结构和数据库交互
+5. **中间件层**：提供认证、日志、错误处理等横切关注点
+6. **工具层**：提供通用工具函数和辅助方法
+
+#### API架构
+
+- **RESTful设计**：遵循RESTful API设计规范，使用标准HTTP方法
+- **版本控制**：API路径包含版本标识，支持API演进
+- **统一响应格式**：标准化API响应结构，包含状态码、消息和数据
+- **认证授权**：基于JWT的无状态认证机制
+- **错误处理**：统一的错误处理中间件，规范化错误响应
+
+#### 数据库架构
+
+- **文档数据库**：使用MongoDB存储结构化数据
+- **数据模型**：基于Mongoose定义对象模型和关系
+- **索引优化**：为常用查询字段建立索引，提升查询性能
+- **数据分片**：按时间维度分片存储大量事件数据
+
+### 核心业务流程图
+
+#### 用户认证流程
+
+![用户认证流程图](./assets/2.png)
+
+#### 内容发布流程
+
+![内容发布流程图](./assets/3.png)
+
+#### Feed流加载流程
+
+![Feed流加载流程图](./assets/4.png)
+
+### 扩展性设计
+
+#### 水平扩展
+- 无状态设计：服务层采用无状态设计，便于水平扩展
+- 负载均衡：支持通过负载均衡器分发请求到多个服务实例
+- 数据库扩展：支持MongoDB副本集和分片集群
+
+#### 功能扩展
+- 模块化设计：系统各部分高度模块化，便于功能扩展
+- 插件机制：支持通过插件扩展系统功能
+- API网关：预留API网关接口，支持未来微服务架构演进
+
+#### 技术扩展
+- 消息队列：预留消息队列集成接口，支持异步处理和系统解耦
+- 缓存系统：支持Redis等分布式缓存系统集成
+- 搜索引擎：支持Elasticsearch等搜索引擎集成，提升搜索性能
+
+### 性能优化方案
+
+#### 前端性能优化
+
+- **代码分割**：使用动态导入(`React.lazy`和`Suspense`)实现代码按需加载，减少初始加载体积
+- **资源优化**：图片使用WebP格式，实现图片懒加载，使用CDN加速静态资源
+- **状态管理优化**：使用Context API + useReducer替代Redux，减少不必要的重渲染
+- **缓存策略**：合理使用localStorage缓存不常变化的数据，减少重复请求
+- **组件优化**：使用React.memo、useMemo和useCallback减少不必要的渲染
+
+#### 后端性能优化
+
+- **数据库索引**：为常用查询字段添加索引，提升查询性能
+- **查询优化**：使用分页查询，避免一次性获取大量数据
+- **缓存机制**：使用Redis缓存热点数据，减轻数据库压力
+- **连接池**：使用数据库连接池管理数据库连接，提高连接复用率
+- **异步处理**：使用Node.js异步特性处理并发请求，提高处理效率
+
+#### 移动端特定优化
+
+- **资源压缩**：对CSS、JavaScript和图片进行深度压缩，减少传输体积
+- **离线缓存**：使用Service Worker实现关键资源离线缓存，支持弱网环境
+- **App Shell模式**：实现App Shell架构，提供即时交互反馈
+- **电量优化**：减少后台请求，优化网络调用频率，降低设备电量消耗
+- **首屏加载优化**：使用骨架屏，实现关键内容优先渲染
+- **网络优化**：实现请求合并、预连接、预加载等技术，减少网络延迟
+
+#### 性能监控与分析
+
+- **前端监控**：集成Performance API监测关键性能指标（FCP、LCP、FID等）
+- **错误监控**：实现全局错误捕获和上报机制
+- **用户体验监控**：跟踪用户操作路径和停留时间，分析性能瓶颈
+- **性能基准测试**：建立性能基准线，定期进行自动化性能测试
+- **监控工具集成**：推荐集成Sentry、Google Analytics等工具进行全面监控
+
+### 埋点设计
+
+#### 埋点方案
+| 埋点名 | 说明 | 字段 | 存储 & 查看方案 |
+| --- | --- | --- | --- |
+| `user_login` | 用户登录事件 | `{ userId, deviceType, timestamp, loginMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看登录趋势和成功率 |
+| `user_register` | 用户注册事件 | `{ userId, deviceType, timestamp, registerMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看注册转化率 |
+| `post_view` | 文章浏览事件 | `{ userId, postId, timestamp, pageSource, timeSpent }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看热门文章和用户偏好 |
+| `post_like` | 文章点赞事件 | `{ userId, postId, timestamp, actionType }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过互动分析模块查看点赞趋势 |
+| `post_comment` | 文章评论事件 | `{ userId, postId, commentId, timestamp, commentLength }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论活跃度 |
+| `search_query` | 搜索查询事件 | `{ userId, queryString, timestamp, resultsCount }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过搜索分析模块查看热门搜索词 |
+| `page_view` | 页面浏览事件 | `{ userId, pageName, timestamp, referrer, duration }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过页面分析模块查看页面访问量和停留时间 |
+
+#### 高频事件处理
+
+##### 滚动事件优化
+
+- **节流处理**：使用`lodash.throttle`将滚动事件的触发频率限制为200ms一次，避免性能问题
+- **滚动位置记录**：使用Intersection Observer API监测滚动位置，实现内容懒加载
+- **滚动状态管理**：维护滚动状态机，避免重复触发相同状态的事件
+- **实现示例**：
+  ```javascript
+  // 前端实现滚动节流
+  import throttle from 'lodash.throttle';
+  
+  const handleScroll = throttle(() => {
+    const scrollTop = window.pageYOffset;
+    // 记录滚动位置和发送埋点
+    trackScrollEvent(scrollTop);
+  }, 200);
+  
+  window.addEventListener('scroll', handleScroll);
+  ```
+
+##### 曝光事件处理
+
+- **可视区域检测**：使用Intersection Observer API精确监测元素进入可视区域
+- **曝光去重**：使用Set数据结构存储已曝光元素ID，避免重复记录
+- **批量上报**：将曝光事件收集到数组，定时批量上报到后端
+- **实现示例**：
+  ```javascript
+  // 前端实现曝光检测
+  const exposedItems = new Set();
+  const exposureQueue = [];
+  
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const itemId = entry.target.dataset.id;
+        if (!exposedItems.has(itemId)) {
+          exposedItems.add(itemId);
+          exposureQueue.push({
+            eventName: 'item_exposure',
+            itemId,
+            timestamp: Date.now(),
+            position: entry.target.getBoundingClientRect()
+          });
+        }
+      }
+    });
+  }, { threshold: 0.5 }); // 元素50%进入可视区域才触发
+  
+  // 批量上报
+  setInterval(() => {
+    if (exposureQueue.length > 0) {
+      sendBatchEvents([...exposureQueue]);
+      exposureQueue.length = 0;
+    }
+  }, 1000);
+  ```
+
+##### 长列表交互优化
+
+- **虚拟滚动**：实现虚拟列表，只渲染可视区域内的元素，减少DOM节点数量
+- **数据分页加载**：使用分页机制加载列表数据，避免一次性加载过多数据
+- **预加载**：滑动到列表底部前，预加载下一页数据，提升用户体验
+- **交互事件委托**：使用事件委托模式处理列表项的点击事件，减少事件监听器数量
+- **实现示例**：
+  ```javascript
+  // 前端实现虚拟列表核心逻辑
+  class VirtualList {
+    constructor(container, options) {
+      this.container = container;
+      this.items = options.items;
+      this.itemHeight = options.itemHeight;
+      this.visibleCount = Math.ceil(container.clientHeight / this.itemHeight);
+      
+      this.updateVisibleItems = throttle(this.updateVisibleItems.bind(this), 16);
+      container.addEventListener('scroll', this.updateVisibleItems);
+    }
+    
+    updateVisibleItems() {
+      const scrollTop = this.container.scrollTop;
+      const startIndex = Math.floor(scrollTop / this.itemHeight);
+      const endIndex = Math.min(startIndex + this.visibleCount + 2, this.items.length);
+      
+      // 只渲染可见区域及缓冲区的元素
+      this.renderItems(startIndex, endIndex);
+    }
+  }
+  ```
+
+### 安全策略文档
+
+### 1. Token 安全策略
+
+#### 1.1 JWT 实现机制
+- **生成方式**：使用 `jsonwebtoken` 库的 `jwt.sign()` 方法生成
+- **存储信息**：包含 `userId` 和 `phone` 两个核心字段
+- **密钥管理**：
+  - 主要从环境变量 `JWT_SECRET` 获取
+  - 提供默认密钥作为兜底方案
+  - 生产环境必须通过环境变量设置强密钥
+- **有效期管理**：
+  - 令牌有效期设置为 24 小时
+  - 返回 `expiresAt` 时间戳，便于前端管理令牌状态
+
+#### 1.2 令牌验证机制
+- **验证中间件**：`authMiddleware.js` 统一处理所有请求的身份验证
+- **认证流程**：
+  1. 从请求头 `Authorization` 中提取 `Bearer Token`
+  2. 使用 `jwt.verify()` 验证令牌有效性
+  3. 从解码信息中提取用户标识
+  4. 将用户信息注入 `req.user` 对象供后续处理使用
+- **错误处理**：
+  - 令牌无效或过期时返回 401 状态码
+  - 详细的日志记录便于问题排查
+
+#### 1.3 安全防护措施
+- **公开路径配置**：明确列出无需认证的 API 路径，如文章列表查询
+- **灵活权限处理**：
+  - 公开路径即使无令牌或令牌无效也允许访问
+  - 非公开路径必须验证令牌有效性
+- **防令牌劫持**：设置合理的有效期，减少令牌被盗用风险
+
+#### 1.4 Token 刷新机制
+- **刷新端点**：`/api/auth/refresh-token` 专门处理令牌刷新
+- **刷新流程**：
+  1. 验证旧令牌格式正确性
+  2. 提取用户信息
+  3. 生成新令牌并重置有效期
+  4. 返回新令牌和过期时间
+- **安全保障**：即使旧令牌已过期仍可用于刷新，避免用户频繁重新登录
+
+### 2. 验证码 (OTP) 安全策略
+
+#### 2.1 验证码生成与存储
+- **生成规则**：6 位数字随机验证码
+- **开发环境优化**：开发模式下使用固定验证码 `123456`
+- **持久化存储**：使用 MongoDB 存储验证码信息
+- **数据模型**：包含手机号、验证码、过期时间、尝试次数、锁定时间等字段
+
+#### 2.2 频率限制机制
+- **发送频率控制**：
+  - 同一手机号每分钟最多发送一次验证码
+  - 使用 `lastRequestTime` 记录上次请求时间
+- **发送前检查**：发送前调用 `canSendOtp()` 验证是否允许发送
+- **友好提示**：返回等待时间，提升用户体验
+
+#### 2.3 验证安全策略
+- **有效期管理**：验证码默认有效期为 5 分钟
+- **一次性使用**：验证成功后立即从数据库删除，防止重用
+- **错误尝试限制**：
+  - 最多允许 5 次验证失败
+  - 达到最大尝试次数后触发账号锁定
+
+#### 2.4 锁定保护机制
+- **锁定触发条件**：连续 5 次验证码错误
+- **锁定时长**：锁定时间为 10 分钟
+- **锁定状态记录**：`lockedUntil` 字段记录锁定结束时间
+- **锁定解除**：时间到期自动解除锁定
+
+#### 2.5 数据清理机制
+- **定期清理**：每 30 分钟自动清理过期的验证码记录
+- **清理规则**：删除已过期且锁定状态也已过期的记录
+- **资源优化**：减少数据库存储空间占用，提高查询效率
+
+#### 2.6 调试与监控
+- **详细日志**：记录每次操作的详细信息，包括操作类型、手机号、结果等
+- **状态日志**：关键节点记录当前存储状态
+- **错误处理**：异常情况提供默认行为，确保服务稳定性
+
+## 许可证
+
+MIT License

@@ -68,26 +68,23 @@ exports.getPosts = async (req, res) => {
     // 创建排序对象
     const sortObj = { [sortField]: sortOrder };
 
-    // --- 模拟数据生成 ---
-    // 生成模拟数据数组
-    const allMockPosts = Array.from({ length: 50 }).map((_, i) => ({
-      _id: `mock_${Date.now()}_${i}`,
-      content: i === 0
-        ? '今天天气真不错，适合出去采风。City Walk 的快乐谁懂？🌿 #生活记录 #CityWalk'
-        : `这是第 ${i + 1} 条模拟动态内容。后端数据库连接超时，自动切换为 Mock 模式。`,
-      images: i % 3 === 0 ? ['https://picsum.photos/400/300'] :
-        i % 3 === 1 ? ['https://picsum.photos/300/300', 'https://picsum.photos/301/301'] : [],
+    // 生成模拟数据
+    const mockPosts = Array.from({ length: 50 }).map((_, i) => ({
+      _id: `mock_${Date.now()}_${i}`, // 使用时间戳+索引作为ID
+      content: `这是第 ${i + 1} 条模拟动态内容。分享生活中的美好瞬间。`,
+      images: i % 3 === 0 ? [`https://picsum.photos/seed/${i}1/400/300`] :
+        i % 3 === 1 ? [`https://picsum.photos/seed/${i}2/300/300`, `https://picsum.photos/seed/${i}3/301/301`] : [],
       author: {
         nickname: `User_${i}`,
         avatar: `https://api.dicebear.com/7.x/miniavs/svg?seed=${i}`
       },
       tags: ['测试', '模拟数据'],
       createdAt: new Date(Date.now() - i * 3600000).toISOString(), // 每条差1小时
-      likes: 10 + i,
+      likes: 10 + i
     }));
 
-    // 应用排序（模拟MongoDB的sort行为）
-    let sortedPosts = [...allMockPosts];
+    // 应用排序
+    let sortedPosts = [...mockPosts];
     sortedPosts.sort((a, b) => {
       if (sortField === 'createdAt') {
         return sortOrder * (new Date(a[sortField]) - new Date(b[sortField]));
@@ -99,10 +96,10 @@ exports.getPosts = async (req, res) => {
 
     // 应用分页
     const paginatedPosts = sortedPosts.slice(skip, skip + limit);
-    const total = allMockPosts.length;
+    const total = mockPosts.length;
     const hasMore = total > skip + limit;
 
-    // 模拟网络延迟 0.5秒
+    // 模拟网络延迟
     setTimeout(() => {
       res.json({
         list: paginatedPosts,
