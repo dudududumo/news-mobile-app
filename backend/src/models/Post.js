@@ -22,7 +22,8 @@ const postSchema = new mongoose.Schema({
   comments: [commentSchema], // 评论列表
   commentsCount: { type: Number, default: 0 }, // 评论数量
   status: { type: String, default: 'published' },
-  createdAt: { type: Date, default: Date.now }
+  createdAt: { type: Date, default: Date.now },
+  editAt: { type: Date } // 编辑时间字段
 });
 
 module.exports = mongoose.model('Post', postSchema);

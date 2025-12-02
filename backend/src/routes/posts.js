@@ -366,7 +366,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         content,
         images: images || [],
         tags: tags || [],
-        updatedAt: new Date()
+        editAt: new Date()
       },
       { new: true }
     ).populate('author', 'nickname avatar');

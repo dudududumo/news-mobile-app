@@ -284,8 +284,8 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
           {/*修复1:日期使用fromNow()，编辑时间也使用fromNow()格式*/}
           <div style={styles.time}>
             {dayjs(post.createdAt).fromNow()}
-            {post.updatedAt && dayjs(post.updatedAt).isAfter(dayjs(post.createdAt)) &&
-              <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.updatedAt).fromNow()}</span>
+            {post.editAt && dayjs(post.editAt).isAfter(dayjs(post.createdAt)) &&
+              <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.editAt).fromNow()}</span>
             }
           </div>
         </div>
