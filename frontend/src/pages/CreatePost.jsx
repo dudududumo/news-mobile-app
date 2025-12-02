@@ -225,7 +225,6 @@ const CreatePost = () => {
   }, [title, content, tags, fileList]);
 
   // 图片上传
-  // 图片上传
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('images', file);
@@ -235,8 +234,8 @@ const CreatePost = () => {
       const data = res.data || res;
 
       if (data.urls && data.urls.length > 0) {
-        // 拼接完整后端 URL
-        return { url: `${import.meta.env.VITE_API_BASE_URL.replace('/api', '')}/${data.urls[0]}` };
+        const baseURL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
+        return { url: baseURL + data.urls[0] }; // 拼接完整后端 URL
       }
       throw new Error('上传失败');
     } catch (e) {
