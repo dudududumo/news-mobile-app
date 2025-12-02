@@ -24,13 +24,14 @@ import service, { getToken } from '../services/axios';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
-
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const BRAND_COLOR = '#a04030';
 
-// 缓存相关函数 (保持不变)
+//===========================
+// 缓存相关函数
+//===========================
 const getCacheKey = (userId) => `likeCache_${userId}`;
 const updateLikedStateCache = (postId, isLiked, likes, userId) => {
   if (!userId) return;
@@ -46,18 +47,15 @@ const getLikedStateFromCache = (postId, userId) => {
   return userCache[postId];
 };
 
-
-// ====================================================================
-// 🔥 新增: 从 Home 页面借鉴的 ImageGrid 组件
-// ====================================================================
+//===========================
+// ImageGrid组件
+//===========================
 const ImageGrid = ({ images }) => {
   if (!images || images.length === 0) return null;
   const count = images.length;
-
-  // 单图模式
   if (count === 1) {
     return (
-      <div style={{ marginTop: '16px', borderRadius: '8px', overflow: 'hidden', border: '1px solid #f0f0f0' }}>
+      <div style={{ marginTop: '16px', borderRadius: '8px', overflow: 'hidden', border: '1px solid#f0f0f0' }}>
         <img
           src={images[0]}
           style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block', cursor: 'pointer' }}
@@ -67,8 +65,6 @@ const ImageGrid = ({ images }) => {
       </div>
     );
   }
-
-  // 多图网格模式
   let cols = count === 2 || count === 4 ? '1fr 1fr' : '1fr 1fr 1fr';
   return (
     <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '6px', marginTop: '16px' }}>
@@ -86,112 +82,38 @@ const ImageGrid = ({ images }) => {
   );
 };
 
-
-// ====================================================================
-// 🔥 更新: 样式定义 (已合并所有样式)
-// ====================================================================
+//===========================
+// 样式定义
+//===========================
 const styles = {
-  container: {
-    minHeight: '100vh',
-    paddingTop: '56px', // 为固定的 NavBar 留出空间
-    paddingBottom: '40px',
-  },
-  navBar: {
-    position: 'fixed',
-    top: 0, left: 0, right: 0,
-    height: '56px', zIndex: 100,
-    background: 'rgba(255, 255, 255, 0.98)',
-    backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid #f5f5f5',
-    display: 'flex', alignItems: 'center',
-  },
-  paperCard: {
-    background: '#fff',
-    minHeight: '80vh',
-    margin: '16px',
-    padding: '24px 20px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 16px rgba(62,58,57,0.08)',
-    position: 'relative',
-  },
-  accentLine: {
-    position: 'absolute',
-    top: 0, left: '50%', transform: 'translateX(-50%)',
-    width: '50px', height: '4px',
-    background: BRAND_COLOR,
-    borderRadius: '0 0 2px 2px',
-  },
-  header: {
-    display: 'flex', alignItems: 'center',
-    marginTop: '16px', marginBottom: '20px',
-  },
-  avatar: {
-    width: '40px', height: '40px', borderRadius: '50%',
-    marginRight: '12px', border: '1px solid #E0E0E0', padding: '1px',
-  },
+  container: { minHeight: '100vh', paddingTop: '56px', paddingBottom: '40px' },
+  navBar: { position: 'fixed', top: 0, left: 0, right: 0, height: '56px', zIndex: 100, background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(10px)', borderBottom: '1px solid#f5f5f5', display: 'flex', alignItems: 'center' },
+  paperCard: { background: '#fff', minHeight: '80vh', margin: '16px', padding: '24px 20px', borderRadius: '12px', boxShadow: '0 4px 16px rgba(62,58,57,0.08)', position: 'relative' },
+  accentLine: { position: 'absolute', top: 0, left: '50%', transform: 'translateX(-50%)', width: '50px', height: '4px', background: BRAND_COLOR, borderRadius: '0 0 2px 2px' },
+  header: { display: 'flex', alignItems: 'center', marginTop: '16px', marginBottom: '20px' },
+  avatar: { width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px', border: '1px solid#E0E0E0', padding: '1px' },
   nickname: { fontSize: '15px', fontWeight: '600', color: '#222' },
   meta: { fontSize: '12px', color: '#999', marginTop: '3px' },
-  title: {
-    fontSize: '22px', // 缩小字号
-    fontWeight: '800', fontFamily: 'var(--font-serif)', color: '#1a1a1a',
-    marginBottom: '16px', lineHeight: '1.4',
-    borderBottom: '1px solid #f0f0f0', paddingBottom: '16px',
-    textAlign: 'left',
-  },
-  content: {
-    fontSize: '16px', // 缩小字号
-    lineHeight: '1.75', color: '#333',
-    fontFamily: 'var(--font-sans)', marginBottom: '24px',
-    textAlign: 'left',
-  },
-  aiSection: {
-    background: '#FDF6F5', border: `1px dashed ${BRAND_COLOR}`,
-    borderRadius: '8px', padding: '12px', marginTop: '24px', marginBottom: '24px',
-  },
-  aiTitle: {
-    fontSize: '14px', color: BRAND_COLOR, fontWeight: 'bold',
-    display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px',
-  },
+  title: { fontSize: '22px', fontWeight: '800', fontFamily: 'var(--font-serif)', color: '#1a1a1a', marginBottom: '16px', lineHeight: '1.4', borderBottom: '1px solid#f0f0f0', paddingBottom: '16px', textAlign: 'left' },
+  content: { fontSize: '16px', lineHeight: '1.75', color: '#333', fontFamily: 'var(--font-sans)', marginBottom: '24px', textAlign: 'left' },
+  aiSection: { background: '#FDF6F5', border: `1px dashed${BRAND_COLOR}`, borderRadius: '8px', padding: '12px', marginTop: '24px', marginBottom: '24px' },
+  aiTitle: { fontSize: '14px', color: BRAND_COLOR, fontWeight: 'bold', display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px' },
   tagContainer: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
-  aiTag: {
-    background: '#fff', border: `1px solid rgba(160,64,48,0.2)`,
-    color: 'var(--c-text)', padding: '4px 10px',
-    borderRadius: '16px', fontSize: '13px', cursor: 'pointer',
-  },
-  statsBar: {
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
-    marginTop: '24px', paddingTop: '16px',
-    borderTop: '1px solid #f5f5f5', color: '#888', fontSize: '14px',
-  },
-  actionButton: {
-    display: 'flex', alignItems: 'center', gap: '6px',
-    cursor: 'pointer', color: '#555', fontSize: '15px',
-  },
+  aiTag: { background: '#fff', border: `1px solid rgba(160,64,48,0.2)`, color: 'var(--c-text)', padding: '4px 10px', borderRadius: '16px', fontSize: '13px', cursor: 'pointer' },
+  statsBar: { display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginTop: '24px', paddingTop: '16px', borderTop: '1px solid#f5f5f5', color: '#888', fontSize: '14px' },
+  actionButton: { display: 'flex', alignItems: 'center', gap: '6px', cursor: 'pointer', color: '#555', fontSize: '15px' },
   liked: { color: BRAND_COLOR, fontWeight: '600' },
-  commentSection: {
-    marginTop: '30px', borderTop: '1px solid #f0f0f0', paddingTop: '20px',
-  },
-  commentInputArea: {
-    padding: '10px 0', display: 'flex',
-    alignItems: 'flex-end', gap: '8px', marginBottom: '20px',
-  },
-  commentListHeader: {
-    fontSize: '16px', fontWeight: '600', color: '#333',
-    marginBottom: '15px', textAlign: 'left',
-  },
-  commentContent: {
-    fontSize: 14, color: '#444',
-    marginTop: 4, lineHeight: 1.6, textAlign: 'left',
-  },
-  relatedSection: {
-    marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #f0f0f0',
-  },
-  relatedItem: {
-    '--prefix-width': '60px', '--align-items': 'flex-start',
-  },
+  commentSection: { marginTop: '30px', borderTop: '1px solid#f0f0f0', paddingTop: '20px' },
+  commentInputArea: { padding: '10px 0', display: 'flex', alignItems: 'flex-end', gap: '8px', marginBottom: '20px' },
+  commentListHeader: { fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '15px', textAlign: 'left' },
+  commentContent: { fontSize: 14, color: '#444', marginTop: 4, lineHeight: 1.6, textAlign: 'left' },
+  relatedSection: { marginTop: '30px', paddingTop: '20px', borderTop: '1px solid#f0f0f0' },
+  relatedItem: { '--prefix-width': '60px', '--align-items': 'flex-start' },
 };
 
+//===========================
 // 骨架屏
+//===========================
 const DetailSkeleton = () => (
   <div style={{ padding: '72px 16px 16px' }}>
     <Skeleton.Title animated style={{ height: 40, marginBottom: 20 }} />
@@ -199,7 +121,9 @@ const DetailSkeleton = () => (
   </div>
 );
 
-
+//===========================
+// PostDetail组件
+//===========================
 const PostDetail = ({ isAuthenticated }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -211,23 +135,33 @@ const PostDetail = ({ isAuthenticated }) => {
   const [comments, setComments] = useState([]);
   const [commentContent, setCommentContent] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(true);
-  const [relatedPosts, setRelatedPosts] = useState([]);
-
   const commentsSectionRef = useRef(null);
   const fetchRef = useRef(false);
+
   const userInfoStr = localStorage.getItem('userInfo');
   const currentUserId = userInfoStr ? JSON.parse(userInfoStr)._id : null;
 
+  //===========================
+  // 获取帖子详情
+  //===========================
   const fetchPostDetail = useCallback(async () => {
     try {
       setLoading(true);
       const res = await service.get(`/posts/${id}`);
       let fetchedPost = res.data || res;
+
       const cachedState = getLikedStateFromCache(id, currentUserId);
       if (cachedState) {
-        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? cachedState.isLiked : false, likes: cachedState.likes };
+        fetchedPost = {
+          ...fetchedPost,
+          isLiked: isAuthenticated ? cachedState.isLiked : false,
+          likes: cachedState.likes
+        };
       } else {
-        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? fetchedPost.isLiked : false };
+        fetchedPost = {
+          ...fetchedPost,
+          isLiked: isAuthenticated ? fetchedPost.isLiked : false,
+        };
       }
       setPost(fetchedPost);
     } catch (e) {
@@ -237,6 +171,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id, currentUserId, isAuthenticated]);
 
+  //===========================
+  // 获取评论
+  //===========================
   const fetchComments = useCallback(async () => {
     if (!id) return;
     try {
@@ -250,16 +187,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]);
 
-  const fetchRelatedPosts = useCallback(async () => {
-    if (!id) return;
-    try {
-      const res = await service.get(`/posts/${id}/related`);
-      setRelatedPosts(res.relatedPosts || []);
-    } catch (e) {
-      console.error('Failed to fetch related posts:', e);
-    }
-  }, [id]);
-
+  //===========================
+  // 提交评论
+  //===========================
   const handleSubmitComment = async () => {
     if (!isAuthenticated) {
       setShowLoginAction(true);
@@ -281,36 +211,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  useEffect(() => {
-    if (id && !fetchRef.current) {
-      fetchRef.current = true;
-      fetchPostDetail();
-    }
-  }, [id, fetchPostDetail]);
-
-  useEffect(() => {
-    if (post?._id) {
-      fetchComments();
-      fetchRelatedPosts();
-      if (location.state?.scrollTo === 'comments' && commentsSectionRef.current) {
-        const timer = setTimeout(() => {
-          commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
-        return () => clearTimeout(timer);
-      }
-    }
-  }, [post, fetchComments, fetchRelatedPosts, location.state]);
-
-  const handleCommentClick = () => {
-    if (!isAuthenticated) {
-      setShowLoginAction(true);
-      return;
-    }
-    if (commentsSectionRef.current) {
-      commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  }
-
+  //===========================
+  // 点赞逻辑
+  //===========================
   const handleLike = async () => {
     if (!isAuthenticated) {
       setShowLoginAction(true);
@@ -321,6 +224,7 @@ const PostDetail = ({ isAuthenticated }) => {
     const newLikedState = !isLiked;
     const newLikesCount = post.likes + (isLiked ? -1 : 1);
 
+    //乐观更新
     setPost(prev => ({ ...prev, likes: newLikesCount, isLiked: newLikedState }));
     updateLikedStateCache(post._id, newLikedState, newLikesCount, currentUserId);
 
@@ -328,9 +232,23 @@ const PostDetail = ({ isAuthenticated }) => {
       const url = `/posts/${post._id}/${isLiked ? 'unlike' : 'like'}`;
       await service.post(url);
     } catch (e) {
+      //回滚
       setPost(prev => ({ ...prev, likes: post.likes, isLiked: isLiked }));
       updateLikedStateCache(post._id, isLiked, post.likes, currentUserId);
       Toast.show('操作失败');
+    }
+  };
+
+  //===========================
+  // 评论区跳转
+  //===========================
+  const handleCommentClick = () => {
+    if (!isAuthenticated) {
+      setShowLoginAction(true);
+      return;
+    }
+    if (commentsSectionRef.current) {
+      commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
     }
   };
 
@@ -339,16 +257,36 @@ const PostDetail = ({ isAuthenticated }) => {
     if (action.key === 'login') {
       navigate('/login', { state: { from: `/post/${id}` } });
     }
-  }
+  };
 
   const handleChallenge = (tag) => {
     navigate('/create', { state: { autoFillTopic: tag } });
   };
 
+  //===========================
+  // 加载数据
+  //===========================
+  useEffect(() => {
+    if (id && !fetchRef.current) {
+      fetchRef.current = true;
+      fetchPostDetail();
+    }
+  }, [id, fetchPostDetail]);
+
+  useEffect(() => {
+    if (post?._id) {
+      fetchComments();
+      if (location.state?.scrollTo === 'comments' && commentsSectionRef.current) {
+        const timer = setTimeout(() => {
+          commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
+        }, 300);
+        return () => clearTimeout(timer);
+      }
+    }
+  }, [post, fetchComments, location.state]);
+
   if (loading) return <DetailSkeleton />;
-  if (!post) {
-    return <div style={{ paddingTop: 100, textAlign: 'center', color: '#999' }}>内容已随风而去</div>;
-  }
+  if (!post) return <div style={{ paddingTop: 100, textAlign: 'center', color: '#999' }}>内容已随风而去</div>;
 
   const isLiked = isAuthenticated ? (post?.isLiked || false) : false;
   const commentsCount = post?.commentsCount || 0;
@@ -357,16 +295,16 @@ const PostDetail = ({ isAuthenticated }) => {
   return (
     <div style={styles.container}>
       <style>{`
-                :root{--c-terra:${BRAND_COLOR};}
-                .detail-html p{margin-bottom:1em;text-align:left;}
-                .detail-html blockquote{border-left:4px solid var(--c-terra);background:#fcf8f7;padding:12px 16px;margin:16px 0;color:#666;font-family:var(--font-serif);font-style:italic;border-radius:0 4px 4px 0;}
-                .detail-html ul,.detail-html ol{padding-left:20px;margin:10px 0;}
-                .detail-html li{margin-bottom:0.5em;}
-                .detail-html img{max-width:100%;height:auto;border-radius:6px;margin:10px 0;display:block;}
-                .detail-html h1,.detail-html h2,.detail-html h3{font-family:var(--font-serif);margin:20px 0 10px 0;border-bottom:1px solid#eee;padding-bottom:5px;font-weight:700;color:#1a1a1a;}
-                .detail-html strong{font-weight:700;color:#000;}
-                .detail-html *{text-align:left;}
-            `}</style>
+        :root{--c-terra:${BRAND_COLOR};}
+        .detail-html p{margin-bottom:1em;text-align:left;}
+        .detail-html blockquote{border-left:4px solid var(--c-terra);background:#fcf8f7;padding:12px 16px;margin:16px 0;color:#666;font-family:var(--font-serif);font-style:italic;border-radius:0 4px 4px 0;}
+        .detail-html ul,.detail-html ol{padding-left:20px;margin:10px 0;}
+        .detail-html li{margin-bottom:0.5em;}
+        .detail-html img{max-width:100%;height:auto;border-radius:6px;margin:10px 0;display:block;}
+        .detail-html h1,.detail-html h2,.detail-html h3{font-family:var(--font-serif);margin:20px 0 10px 0;border-bottom:1px solid#eee;padding-bottom:5px;font-weight:700;color:#1a1a1a;}
+        .detail-html strong{font-weight:700;color:#000;}
+        .detail-html*{text-align:left;}
+      `}</style>
 
       <NavBar onBack={() => navigate(-1)} style={styles.navBar}>
         <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 'bold' }}>City Daily.</span>
@@ -387,16 +325,9 @@ const PostDetail = ({ isAuthenticated }) => {
 
         {post.title && <div style={styles.title}>{post.title}</div>}
 
-        <div
-          className="detail-html ql-editor"
-          style={styles.content}
-          dangerouslySetInnerHTML={{ __html: post.content }}
-        />
+        <div className="detail-html ql-editor" style={styles.content} dangerouslySetInnerHTML={{ __html: post.content }} />
 
-        {/* 🔥 优化: 使用 ImageGrid 组件渲染图片 */}
-        {post.images?.length > 0 && (
-          <ImageGrid images={post.images} />
-        )}
+        {post.images?.length > 0 && <ImageGrid images={post.images} />}
 
         {post.tags?.length > 0 && (
           <div style={styles.aiSection}>
@@ -416,45 +347,52 @@ const PostDetail = ({ isAuthenticated }) => {
         )}
 
         <div style={styles.statsBar}>
-          <span><EyeOutline style={{ marginRight: 4 }} />{post.views || 0} 阅读</span>
+          <span><EyeOutline style={{ marginRight: 4 }} />{post.views || 0}阅读</span>
           <div style={{ display: 'flex', gap: 24 }}>
             <div style={{ ...styles.actionButton, ...(isLiked ? styles.liked : {}) }} onClick={handleLike}>
-              {icon}
-              <span>{post.likes || 0}</span>
+              {icon}<span>{post.likes || 0}</span>
             </div>
             <div style={styles.actionButton} onClick={handleCommentClick}>
-              <MessageOutline />
-              <span>{commentsCount > 0 ? commentsCount : '评论'}</span>
+              <MessageOutline /><span>{commentsCount > 0 ? commentsCount : '评论'}</span>
             </div>
           </div>
         </div>
 
-        {/* ❤️ 保留: 完整的评论区功能 */}
+        {post.relatedPosts?.length > 0 && (
+          <div style={{ marginTop: '40px', paddingTop: '10px', borderTop: '1px dashed#eee' }}>
+            <div style={styles.aiTitle}>
+              <CompassOutline style={{ fontSize: 14 }} />
+              相关阅读
+            </div>
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {post.relatedPosts.map(p => (
+                <div key={p._id} style={{ padding: '8px 0', borderBottom: '1px solid#f0f0f0', cursor: 'pointer' }}
+                  onClick={() => navigate(`/post/${p._id}`)}>
+                  <div style={{ fontSize: '15px', color: '#333', fontWeight: '500' }}>{p.title || p.content.substring(0, 30)}</div>
+                  <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                    {p.tags?.slice(0, 2).map(t => `#${t}`).join('') || '相关文章'}
+                  </div>
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
         <div ref={commentsSectionRef} style={styles.commentSection}>
           <div style={styles.commentInputArea}>
             <TextArea
-              placeholder="留下你的看法..."
+              placeholder={isAuthenticated ? '留下你的精彩评论...' : '请登录后才能评论...'}
               value={commentContent}
-              onChange={val => setCommentContent(val)}
+              onChange={setCommentContent}
               autoSize={{ minRows: 1, maxRows: 4 }}
-              style={{ '--font-size': '15px', flex: 1 }}
+              style={{ flex: 1, border: '1px solid #ddd', borderRadius: '8px', padding: '6px 10px' }}
+              disabled={!isAuthenticated}
             />
-            <Button
-              size="small"
-              onClick={handleSubmitComment}
-              style={{
-                '--background-color': BRAND_COLOR,
-                '--border-color': BRAND_COLOR,
-                '--text-color': '#fff',
-              }}
-            >
+            <Button size="small" onClick={handleSubmitComment} style={{ '--background-color': BRAND_COLOR, '--border-color': BRAND_COLOR, '--text-color': '#fff' }}>
               <SendOutline />
             </Button>
           </div>
-
-          <div style={styles.commentListHeader}>
-            全部评论 ({commentsCount})
-          </div>
+          <div style={styles.commentListHeader}>全部评论({commentsCount})</div>
           {commentsLoading ? (
             <div style={{ padding: '20px 0', textAlign: 'center' }}>
               <SpinLoading style={{ '--size': '24px' }} />
@@ -465,62 +403,26 @@ const PostDetail = ({ isAuthenticated }) => {
                 <List.Item
                   key={comment._id}
                   prefix={<Avatar src={comment.user?.avatar} style={{ '--size': '36px', borderRadius: '50%' }} />}
-                  description={
-                    <div style={styles.commentContent} dangerouslySetInnerHTML={{ __html: comment.content }} />
-                  }
-                >
-                  <div style={{ fontSize: 13, color: '#555', fontWeight: 'bold' }}>
-                    {comment.user?.nickname}
-                  </div>
-                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
-                    {dayjs(comment.createdAt).fromNow()}
-                  </div>
+                  description={<div style={styles.commentContent} dangerouslySetInnerHTML={{ __html: comment.content }} />}>
+                  <div style={{ fontSize: 13, color: '#555', fontWeight: 'bold' }}>{comment.user?.nickname}</div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{dayjs(comment.createdAt).fromNow()}</div>
                 </List.Item>
               ))}
             </List>
           ) : (
-            <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>
-              还没有评论，快来抢占沙发吧！
-            </div>
+            <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>还没有评论，快来抢占沙发吧！</div>
           )}
         </div>
 
-
-        {post.relatedPosts?.length > 0 && (
-          <div style={{ marginTop: '40px', paddingTop: '10px', borderTop: '1px dashed #eee' }}>
-            <div style={styles.aiTitle}>
-              <CompassOutline style={{ fontSize: 14 }} />
-              相关阅读
-            </div>
-            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
-              {post.relatedPosts.map(p => (
-                <div
-                  key={p._id}
-                  style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
-                  onClick={() => navigate(`/post/${p._id}`)}
-                >
-                  <div style={{ fontSize: '15px', color: '#333', fontWeight: '500' }}>
-                    {p.title || p.content.substring(0, 30)}
-                  </div>
-                  <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    {p.tags?.slice(0, 2).map(t => `#${t}`).join('') || '相关文章'}
-                  </div>
-                </div>
-              ))}
-            </div>
-          </div>
-        )}
-
+        <ActionSheet
+          visible={showLoginAction}
+          actions={[{ key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } }]}
+          cancelText='取消'
+          onClose={() => setShowLoginAction(false)}
+          onAction={handleLoginAction}
+          extra={'查看文章详情和互动需要登录'}
+        />
       </div>
-
-      <ActionSheet
-        visible={showLoginAction}
-        actions={[{ key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } }]}
-        cancelText='取消'
-        onClose={() => setShowLoginAction(false)}
-        onAction={handleLoginAction}
-        extra={'查看文章详情和互动需要登录'}
-      />
     </div>
   );
 };
