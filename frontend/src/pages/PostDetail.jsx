@@ -580,7 +580,7 @@ const PostDetail = ({ isAuthenticated }) => {
               </div>
             </div>
             {post.relatedPosts?.length > 0 && renderRelatedPosts(post.relatedPosts)}
-            <div ref={commentsSectionRef} style={styles.commentSection}>
+            <div ref={commentsSectionRef} style={{...styles.commentSection, backgroundColor: 'transparent'}}>
               <div style={styles.commentListHeader}>
                 评论({commentsCount})
               </div>
@@ -618,22 +618,24 @@ const PostDetail = ({ isAuthenticated }) => {
                       description={
                         <div style={styles.commentContent}>
                           {comment.content}
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 8 }}>
-                            {/*修复1:评论区日期保持相对时间*/}
-                            {dayjs(comment.createdAt).fromNow()}
-                          </div>
                         </div>
                       }
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0 }}>
-                        <img
-                          src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
-                          alt="avatar"
-                          style={{ width: '28px', height: '28px', borderRadius: '50%', marginRight: '8px' }}
-                        />
-                        <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
-                          {comment.user?.nickname || '匿名用户'}
-                        </span>
+                      <div style={{ display: 'flex', flexDirection: 'column', paddingLeft: 0 }}>
+                        <div style={{ display: 'flex', alignItems: 'center' }}>
+                          <img
+                            src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
+                            alt="avatar"
+                            style={{ width: '28px', height: '28px', borderRadius: '50%', marginRight: '8px' }}
+                          />
+                          <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
+                            {comment.user?.nickname || '匿名用户'}
+                          </span>
+                        </div>
+                        {/* 将发布时间移到头像下方，靠左对齐 */}
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 2, marginLeft: '36px' }}>
+                          {dayjs(comment.createdAt).fromNow()}
+                        </div>
                       </div>
                     </List.Item>
                   ))}
