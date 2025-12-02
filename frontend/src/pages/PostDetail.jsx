@@ -62,8 +62,7 @@ const getLikedStateFromCache = (postId, userId) => {
 const styles = {
   container: {
     minHeight: '100vh',
-    paddingBottom: '40px',
-    paddingTop: '60px', // 减小与导航栏的间距
+    padding: '60px 16px 40px 16px', // 统一四周的padding
     margin: 0,
   },
   navBar: {
@@ -76,7 +75,7 @@ const styles = {
   },
   navContent: {
     width: '100%',
-    padding: '0 20px',
+    padding: '0 16px', // 与内容区域保持一致的padding
     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
   },
   backButton: {
@@ -98,10 +97,10 @@ const styles = {
   },
   // 简化布局，移除内容框设计
   contentWrapper: {
-    padding: '0 16px',
+    padding: 0, // 移除padding，因为已经在container上设置了
     maxWidth: '100%',
     width: '100%',
-    margin: '0 auto', // 确保居中
+    margin: 0,
   },
   accentLine: {
     position: 'absolute',
