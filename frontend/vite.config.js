@@ -10,14 +10,14 @@ export default defineConfig({
   server: {
     proxy: {
       '/api': {
-        target: 'http://localhost:3000',
+        target: 'http://news-mobile-app.zeabur.app',
         changeOrigin: true,
-        // 由于后端注册的是 app.use('/api/posts')，所以不需要 rewrite
+        rewrite: (path) => path.replace(/^\/api/, '/api') // 保持 /api 不变
       },
-      // 这一段是为了让前端能看到上传的图片
       '/uploads': {
-        target: 'http://localhost:3000',
+        target: 'http://news-mobile-app.zeabur.app',
         changeOrigin: true,
+        rewrite: (path) => path.replace(/^\/uploads/, '/uploads') // 保持 /uploads 不变
       }
     }
   }
