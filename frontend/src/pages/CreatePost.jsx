@@ -228,13 +228,13 @@ const CreatePost = () => {
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('images', file);
+
     try {
       const res = await service.post('/posts/upload', formData);
       const data = res.data || res;
+
       if (data.urls && data.urls.length > 0) {
-        let fullUrl = data.urls[0];
-        if (!fullUrl.startsWith('http')) fullUrl = `http://localhost:3000${fullUrl}`;
-        return { url: fullUrl };
+        return { url: data.urls[0] };  // ❗ 直接使用后端返回的路径，不做任何拼接
       }
       throw new Error('上传失败');
     } catch (e) {
@@ -242,6 +242,7 @@ const CreatePost = () => {
       throw e;
     }
   };
+
 
   // AI 生成标签
   const handleAiLabel = async () => {
