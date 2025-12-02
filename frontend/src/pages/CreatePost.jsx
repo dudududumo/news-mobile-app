@@ -319,6 +319,7 @@ const CreatePost = () => {
         // 编辑模式：使用PUT请求更新帖子
         await service.put(`/posts/${editingPost._id}`, postData);
         Toast.show({ content: '修改保存成功', icon: 'success' });
+        localStorage.removeItem(getDraftKey()); // 编辑模式也清除草稿
       } else {
         // 创建模式：使用POST请求创建新帖子
         await service.post('/posts', postData);
@@ -362,7 +363,24 @@ const CreatePost = () => {
       </NavBar>
 
       <div style={styles.statusBar}>
-        {lastSaved ? `草稿已保存 ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
+        {isEditMode && editingPost ? (
+          <div style={{ fontSize: '13px', color: '#666' }}>
+            发布于 {new Date(editingPost.createdAt).toLocaleString('zh-CN', {
+              year: 'numeric', month: '2-digit', day: '2-digit',
+              hour: '2-digit', minute: '2-digit'
+            })}
+            {editingPost.updatedAt && editingPost.updatedAt !== editingPost.createdAt && (
+              <span style={{ marginLeft: '10px' }}>
+                编辑于 {new Date(editingPost.updatedAt).toLocaleString('zh-CN', {
+                  year: 'numeric', month: '2-digit', day: '2-digit',
+                  hour: '2-digit', minute: '2-digit'
+                })}
+              </span>
+            )}
+          </div>
+        ) : (
+          lastSaved ? `草稿已保存 ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''
+        )}
       </div>
 
       <div style={styles.paperCard}>

@@ -519,7 +519,7 @@ const PostDetail = ({ isAuthenticated }) => {
       `}</style>
       <div style={styles.navBar}>
         <div style={styles.navContent}>
-          <div onClick={() => navigate(-1)} style={styles.backButton}>
+          <div onClick={() => navigate('/')} style={styles.backButton}>
             &lt;
           </div>
           <div style={styles.navLogo}>City Daily.</div>

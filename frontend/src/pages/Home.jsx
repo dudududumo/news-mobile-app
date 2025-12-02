@@ -263,12 +263,9 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
     setIsExpanded(!isExpanded);
   };
 
-  // 判断是否是当前用户发布的帖子 - 更健壮的身份判断
+  // 判断是否是当前用户发布的帖子 - 简化并优化判断逻辑
   const isOwnPost = isLoggedIn && userInfo && post.author &&
-    (userInfo._id === post.author._id ||
-      userInfo.id === post.author._id ||
-      userInfo._id === post.author.id ||
-      userInfo.id === post.author.id);
+    (String(userInfo._id || userInfo.id) === String(post.author._id || post.author.id));
 
   // 决定点赞图标和颜色
   const iconColor = isLoggedIn && isLiked ? BRAND_COLOR : '#999';
@@ -284,11 +281,14 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
             {post.author?.nickname || 'City User'}
             {isOwnPost && <span style={{ color: BRAND_COLOR, fontSize: '12px', marginLeft: '6px' }}>·我的</span>}
           </div>
-          {/*修复1:日期使用fromNow()，优化编辑时间显示*/}
+          {/*修复1:日期使用fromNow()，优化编辑时间显示，保持与CreatePost页面格式一致*/}
           <div style={styles.time}>
             {dayjs(post.createdAt).fromNow()}
             {post.updatedAt && post.updatedAt !== post.createdAt &&
-              <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.updatedAt).format('YYYY-MM-DD HH:mm')}</span>
+              <span style={{ marginLeft: '6px' }}>编辑于{new Date(post.updatedAt).toLocaleString('zh-CN', {
+                year: 'numeric', month: '2-digit', day: '2-digit',
+                hour: '2-digit', minute: '2-digit'
+              })}</span>
             }
           </div>
         </div>
