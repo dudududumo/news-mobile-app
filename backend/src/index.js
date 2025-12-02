@@ -11,12 +11,14 @@ const app = express();
 app.use(cors({
   origin: [
     'https://news-mobile-app.vercel.app',
-    'http://localhost:5173'
+    'http://localhost:5173',
+    'https://news-mobile-app.zeabur.app' // 新增生产域名
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
+
 
 // --- Body Limit ---
 app.use(express.json({ limit: '50mb' }));
