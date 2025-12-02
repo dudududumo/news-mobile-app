@@ -129,16 +129,19 @@ router.post('/upload', authMiddleware, upload.array('images', 9), async (req, re
       return new Promise((resolve, reject) => {
         const ext = path.extname(file.originalname);
         const key = `uploads/${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
-        cos.putObject({
+
+        // 使用 sliceUploadFile 分片上传，支持 MAZ 桶
+        cos.sliceUploadFile({
           Bucket: BUCKET,
           Region: REGION,
           Key: key,
           Body: file.buffer,
-          ContentLength: file.size,
-          ContentType: file.mimetype,
-          StorageClass: 'STANDARD'
+          ContentType: file.mimetype
         }, (err, data) => {
-          if (err) return reject(err);
+          if (err) {
+            console.error('COS 上传出错:', err);
+            return reject(err);
+          }
           urls.push(`https://${BUCKET}.cos.${REGION}.myqcloud.com/${key}`);
           resolve();
         });
@@ -151,6 +154,7 @@ router.post('/upload', authMiddleware, upload.array('images', 9), async (req, re
     res.status(500).json({ message: '上传失败' });
   }
 });
+
 
 // --- 8. 获取文章详情 ---
 router.get('/:id', authMiddleware, async (req, res) => {
