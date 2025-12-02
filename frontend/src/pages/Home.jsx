@@ -263,9 +263,13 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
     setIsExpanded(!isExpanded);
   };
 
-  // 判断是否是当前用户发布的帖子
-  const isOwnPost = isLoggedIn && userInfo?._id === post.author?._id;
-  
+  // 判断是否是当前用户发布的帖子 - 更健壮的身份判断
+  const isOwnPost = isLoggedIn && userInfo && post.author &&
+    (userInfo._id === post.author._id ||
+      userInfo.id === post.author._id ||
+      userInfo._id === post.author.id ||
+      userInfo.id === post.author.id);
+
   // 决定点赞图标和颜色
   const iconColor = isLoggedIn && isLiked ? BRAND_COLOR : '#999';
   const icon = isLoggedIn && isLiked ? <HeartFill style={{ color: iconColor, fontSize: 20 }} /> : <HeartOutline style={{ fontSize: 20, color: '#999' }} />;
@@ -283,16 +287,16 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
           {/*修复1:日期使用fromNow()，优化编辑时间显示*/}
           <div style={styles.time}>
             {dayjs(post.createdAt).fromNow()}
-            {post.updatedAt && post.updatedAt !== post.createdAt && 
+            {post.updatedAt && post.updatedAt !== post.createdAt &&
               <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.updatedAt).format('YYYY-MM-DD HH:mm')}</span>
             }
           </div>
         </div>
         <div style={{ flex: 1 }} />
-        <MoreOutline 
-          fontSize={20} 
-          color={isOwnPost ? BRAND_COLOR : '#999'} 
-          onClick={(e) => { e.stopPropagation(); onAction('more', post, isOwnPost, e); }} 
+        <MoreOutline
+          fontSize={20}
+          color={isOwnPost ? BRAND_COLOR : '#999'}
+          onClick={(e) => { e.stopPropagation(); onAction('more', post, isOwnPost, e); }}
           style={{ cursor: isOwnPost ? 'pointer' : 'default' }}
         />
       </div>
@@ -509,7 +513,7 @@ function Home({ isHomeRoute }) {
         }
       }
     }
-    
+
     // 处理编辑操作
     if (action === 'edit') {
       setMenuVisible(false);
@@ -521,7 +525,7 @@ function Home({ isHomeRoute }) {
         }
       });
     }
-    
+
     // 处理删除操作
     if (action === 'delete') {
       setMenuVisible(false);
@@ -550,7 +554,7 @@ function Home({ isHomeRoute }) {
     setMenuVisible(false);
     setSelectedPost(null);
   };
-  
+
   // 点击页面其他区域关闭菜单
   useEffect(() => {
     const handleClickOutside = () => {
@@ -558,13 +562,13 @@ function Home({ isHomeRoute }) {
         setMenuVisible(false);
       }
     };
-    
+
     document.addEventListener('click', handleClickOutside);
     return () => {
       document.removeEventListener('click', handleClickOutside);
     };
   }, [menuVisible]);
-  
+
   // --- 下拉刷新 ---
   const handleRefresh = async () => {
     setPage(1);
@@ -729,10 +733,10 @@ function Home({ isHomeRoute }) {
       }}>
         <AddCircleOutline />
       </div>
-      
+
       {/* 下拉菜单组件 */}
       {menuVisible && selectedPost && (
-        <div 
+        <div
           style={{
             position: 'fixed',
             left: `${menuPosition.x}px`,
@@ -746,7 +750,7 @@ function Home({ isHomeRoute }) {
           }}
           onClick={(e) => e.stopPropagation()}
         >
-          <div 
+          <div
             style={{
               padding: '12px 16px',
               fontSize: '15px',
@@ -759,7 +763,7 @@ function Home({ isHomeRoute }) {
           >
             编辑
           </div>
-          <div 
+          <div
             style={{
               padding: '12px 16px',
               fontSize: '15px',
