@@ -24,14 +24,13 @@ import service, { getToken } from '../services/axios';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
+
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
 
 const BRAND_COLOR = '#a04030';
 
-//===========================
-// 缓存相关函数
-//===========================
+//================== 缓存函数 ==================
 const getCacheKey = (userId) => `likeCache_${userId}`;
 const updateLikedStateCache = (postId, isLiked, likes, userId) => {
   if (!userId) return;
@@ -47,9 +46,7 @@ const getLikedStateFromCache = (postId, userId) => {
   return userCache[postId];
 };
 
-//===========================
-// ImageGrid组件
-//===========================
+//================== ImageGrid ==================
 const ImageGrid = ({ images }) => {
   if (!images || images.length === 0) return null;
   const count = images.length;
@@ -82,9 +79,7 @@ const ImageGrid = ({ images }) => {
   );
 };
 
-//===========================
-// 样式定义
-//===========================
+//================== 样式 ==================
 const styles = {
   container: { minHeight: '100vh', paddingTop: '56px', paddingBottom: '40px' },
   navBar: { position: 'fixed', top: 0, left: 0, right: 0, height: '56px', zIndex: 100, background: 'rgba(255,255,255,0.98)', backdropFilter: 'blur(10px)', borderBottom: '1px solid#f5f5f5', display: 'flex', alignItems: 'center' },
@@ -93,7 +88,7 @@ const styles = {
   header: { display: 'flex', alignItems: 'center', marginTop: '16px', marginBottom: '20px' },
   avatar: { width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px', border: '1px solid#E0E0E0', padding: '1px' },
   nickname: { fontSize: '15px', fontWeight: '600', color: '#222' },
-  meta: { fontSize: '12px', color: '#999', marginTop: '3px' },
+  meta: { fontSize: '12px', color: '#999' },
   title: { fontSize: '22px', fontWeight: '800', fontFamily: 'var(--font-serif)', color: '#1a1a1a', marginBottom: '16px', lineHeight: '1.4', borderBottom: '1px solid#f0f0f0', paddingBottom: '16px', textAlign: 'left' },
   content: { fontSize: '16px', lineHeight: '1.75', color: '#333', fontFamily: 'var(--font-sans)', marginBottom: '24px', textAlign: 'left' },
   aiSection: { background: '#FDF6F5', border: `1px dashed${BRAND_COLOR}`, borderRadius: '8px', padding: '12px', marginTop: '24px', marginBottom: '24px' },
@@ -108,12 +103,9 @@ const styles = {
   commentListHeader: { fontSize: '16px', fontWeight: '600', color: '#333', marginBottom: '15px', textAlign: 'left' },
   commentContent: { fontSize: 14, color: '#444', marginTop: 4, lineHeight: 1.6, textAlign: 'left' },
   relatedSection: { marginTop: '30px', paddingTop: '20px', borderTop: '1px solid#f0f0f0' },
-  relatedItem: { '--prefix-width': '60px', '--align-items': 'flex-start' },
 };
 
-//===========================
-// 骨架屏
-//===========================
+//================== 骨架屏 ==================
 const DetailSkeleton = () => (
   <div style={{ padding: '72px 16px 16px' }}>
     <Skeleton.Title animated style={{ height: 40, marginBottom: 20 }} />
@@ -121,14 +113,11 @@ const DetailSkeleton = () => (
   </div>
 );
 
-//===========================
-// PostDetail组件
-//===========================
+//================== PostDetail ==================
 const PostDetail = ({ isAuthenticated }) => {
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
-
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLoginAction, setShowLoginAction] = useState(false);
@@ -137,31 +126,20 @@ const PostDetail = ({ isAuthenticated }) => {
   const [commentsLoading, setCommentsLoading] = useState(true);
   const commentsSectionRef = useRef(null);
   const fetchRef = useRef(false);
-
   const userInfoStr = localStorage.getItem('userInfo');
   const currentUserId = userInfoStr ? JSON.parse(userInfoStr)._id : null;
 
-  //===========================
-  // 获取帖子详情
-  //===========================
+  //================== 数据加载 ==================
   const fetchPostDetail = useCallback(async () => {
     try {
       setLoading(true);
       const res = await service.get(`/posts/${id}`);
       let fetchedPost = res.data || res;
-
       const cachedState = getLikedStateFromCache(id, currentUserId);
       if (cachedState) {
-        fetchedPost = {
-          ...fetchedPost,
-          isLiked: isAuthenticated ? cachedState.isLiked : false,
-          likes: cachedState.likes
-        };
+        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? cachedState.isLiked : false, likes: cachedState.likes };
       } else {
-        fetchedPost = {
-          ...fetchedPost,
-          isLiked: isAuthenticated ? fetchedPost.isLiked : false,
-        };
+        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? fetchedPost.isLiked : false };
       }
       setPost(fetchedPost);
     } catch (e) {
@@ -171,9 +149,6 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id, currentUserId, isAuthenticated]);
 
-  //===========================
-  // 获取评论
-  //===========================
   const fetchComments = useCallback(async () => {
     if (!id) return;
     try {
@@ -187,18 +162,18 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]);
 
-  //===========================
-  // 提交评论
-  //===========================
+  const fetchRelatedPosts = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await service.get(`/posts/${id}/related`);
+      setPost(prev => ({ ...prev, relatedPosts: res.relatedPosts || [] }));
+    } catch (e) { console.error('Failed to fetch related posts:', e); }
+  }, [id]);
+
+  //================== 评论提交 ==================
   const handleSubmitComment = async () => {
-    if (!isAuthenticated) {
-      setShowLoginAction(true);
-      return;
-    }
-    if (commentContent.trim() === '') {
-      Toast.show('评论内容不能为空');
-      return;
-    }
+    if (!isAuthenticated) { setShowLoginAction(true); return; }
+    if (commentContent.trim() === '') { Toast.show('评论内容不能为空'); return; }
     try {
       Toast.show({ content: '发送中...', icon: 'loading', duration: 0 });
       const res = await service.post(`/posts/${id}/comments`, { content: commentContent });
@@ -211,79 +186,41 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  //===========================
-  // 点赞逻辑
-  //===========================
+  //================== 点赞 ==================
   const handleLike = async () => {
-    if (!isAuthenticated) {
-      setShowLoginAction(true);
-      return;
-    }
+    if (!isAuthenticated) { setShowLoginAction(true); return; }
     if (!post) return;
     const isLiked = post.isLiked || false;
     const newLikedState = !isLiked;
     const newLikesCount = post.likes + (isLiked ? -1 : 1);
-
-    //乐观更新
     setPost(prev => ({ ...prev, likes: newLikesCount, isLiked: newLikedState }));
     updateLikedStateCache(post._id, newLikedState, newLikesCount, currentUserId);
-
     try {
       const url = `/posts/${post._id}/${isLiked ? 'unlike' : 'like'}`;
       await service.post(url);
     } catch (e) {
-      //回滚
       setPost(prev => ({ ...prev, likes: post.likes, isLiked: isLiked }));
       updateLikedStateCache(post._id, isLiked, post.likes, currentUserId);
       Toast.show('操作失败');
     }
   };
 
-  //===========================
-  // 评论区跳转
-  //===========================
-  const handleCommentClick = () => {
-    if (!isAuthenticated) {
-      setShowLoginAction(true);
-      return;
-    }
-    if (commentsSectionRef.current) {
-      commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-    }
-  };
+  const handleCommentClick = () => { if (!isAuthenticated) { setShowLoginAction(true); return; } if (commentsSectionRef.current) { commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); } };
+  const handleLoginAction = (action) => { setShowLoginAction(false); if (action.key === 'login') { navigate('/login', { state: { from: `/post/${id}` } }); } };
+  const handleChallenge = (tag) => { navigate('/create', { state: { autoFillTopic: tag } }); };
 
-  const handleLoginAction = (action) => {
-    setShowLoginAction(false);
-    if (action.key === 'login') {
-      navigate('/login', { state: { from: `/post/${id}` } });
-    }
-  };
-
-  const handleChallenge = (tag) => {
-    navigate('/create', { state: { autoFillTopic: tag } });
-  };
-
-  //===========================
-  // 加载数据
-  //===========================
-  useEffect(() => {
-    if (id && !fetchRef.current) {
-      fetchRef.current = true;
-      fetchPostDetail();
-    }
-  }, [id, fetchPostDetail]);
-
+  //================== 初始加载 ==================
+  useEffect(() => { fetchPostDetail(); }, [id, fetchPostDetail]);
   useEffect(() => {
     if (post?._id) {
       fetchComments();
+      fetchRelatedPosts();
       if (location.state?.scrollTo === 'comments' && commentsSectionRef.current) {
-        const timer = setTimeout(() => {
-          commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
-        }, 300);
+        const timer = setTimeout(() => { commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' }); }, 300);
         return () => clearTimeout(timer);
       }
     }
-  }, [post, fetchComments, location.state]);
+  }, [post, fetchComments, fetchRelatedPosts, location.state]);
 
   if (loading) return <DetailSkeleton />;
   if (!post) return <div style={{ paddingTop: 100, textAlign: 'center', color: '#999' }}>内容已随风而去</div>;
@@ -313,39 +250,39 @@ const PostDetail = ({ isAuthenticated }) => {
       <div style={styles.paperCard}>
         <div style={styles.accentLine} />
 
+        {/* 作者信息 */}
         <div style={styles.header}>
           <img src={post.author?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'} style={styles.avatar} alt="author avatar" />
-          <div>
-            <div style={styles.nickname}>{post.author?.nickname || '匿名用户'}</div>
-            <div style={styles.meta}>
-              {dayjs(post.createdAt).format('YYYY-MM-DD')}
+          <div style={{ display: 'flex', flexDirection: 'column' }}>
+            <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+              <span style={styles.nickname}>{post.author?.nickname || '匿名用户'}</span>
+              <span style={styles.meta}>{dayjs(post.createdAt).format('YYYY-MM-DD')}</span>
             </div>
           </div>
         </div>
 
+        {/* 标题与内容 */}
         {post.title && <div style={styles.title}>{post.title}</div>}
-
         <div className="detail-html ql-editor" style={styles.content} dangerouslySetInnerHTML={{ __html: post.content }} />
 
+        {/* 图片 */}
         {post.images?.length > 0 && <ImageGrid images={post.images} />}
 
+        {/* AI 标签 */}
         {post.tags?.length > 0 && (
           <div style={styles.aiSection}>
-            <div style={styles.aiTitle}>
-              <CompassOutline />
-              <span>AI灵感延伸</span>
-            </div>
+            <div style={styles.aiTitle}><CompassOutline /><span>AI灵感延伸</span></div>
             <div style={styles.tagContainer}>
               {post.tags.map((tag, i) => (
                 <div key={i} style={styles.aiTag} onClick={() => handleChallenge(tag)}>
-                  <span style={{ color: BRAND_COLOR, fontWeight: 'bold' }}>#</span>
-                  {tag}
+                  <span style={{ color: BRAND_COLOR, fontWeight: 'bold' }}>#</span>{tag}
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* 统计栏 */}
         <div style={styles.statsBar}>
           <span><EyeOutline style={{ marginRight: 4 }} />{post.views || 0}阅读</span>
           <div style={{ display: 'flex', gap: 24 }}>
@@ -358,71 +295,67 @@ const PostDetail = ({ isAuthenticated }) => {
           </div>
         </div>
 
+        {/* 相关阅读 */}
         {post.relatedPosts?.length > 0 && (
           <div style={{ marginTop: '40px', paddingTop: '10px', borderTop: '1px dashed#eee' }}>
-            <div style={styles.aiTitle}>
-              <CompassOutline style={{ fontSize: 14 }} />
-              相关阅读
-            </div>
+            <div style={styles.aiTitle}><CompassOutline style={{ fontSize: 14 }} />相关阅读</div>
             <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
               {post.relatedPosts.map(p => (
-                <div key={p._id} style={{ padding: '8px 0', borderBottom: '1px solid#f0f0f0', cursor: 'pointer' }}
-                  onClick={() => navigate(`/post/${p._id}`)}>
+                <div key={p._id} style={{ padding: '8px 0', borderBottom: '1px solid#f0f0f0', cursor: 'pointer' }} onClick={() => navigate(`/post/${p._id}`)}>
                   <div style={{ fontSize: '15px', color: '#333', fontWeight: '500' }}>{p.title || p.content.substring(0, 30)}</div>
-                  <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
-                    {p.tags?.slice(0, 2).map(t => `#${t}`).join('') || '相关文章'}
-                  </div>
+                  <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>{p.tags?.slice(0, 2).map(t => `#${t}`).join('') || '相关文章'}</div>
                 </div>
               ))}
             </div>
           </div>
         )}
 
+        {/* 评论区 */}
         <div ref={commentsSectionRef} style={styles.commentSection}>
           <div style={styles.commentInputArea}>
             <TextArea
               placeholder={isAuthenticated ? '留下你的精彩评论...' : '请登录后才能评论...'}
               value={commentContent}
-              onChange={setCommentContent}
+              onChange={val => setCommentContent(val)}
               autoSize={{ minRows: 1, maxRows: 4 }}
-              style={{ flex: 1, border: '1px solid #ddd', borderRadius: '8px', padding: '6px 10px' }}
+              style={{ flex: 1, '--font-size': '15px' }}
               disabled={!isAuthenticated}
             />
-            <Button size="small" onClick={handleSubmitComment} style={{ '--background-color': BRAND_COLOR, '--border-color': BRAND_COLOR, '--text-color': '#fff' }}>
-              <SendOutline />
-            </Button>
+            <Button size="small" onClick={handleSubmitComment} style={{ '--background-color': BRAND_COLOR, '--border-color': BRAND_COLOR, '--text-color': '#fff' }} disabled={!isAuthenticated || commentContent.trim() === ''}><SendOutline /></Button>
           </div>
           <div style={styles.commentListHeader}>全部评论({commentsCount})</div>
+
           {commentsLoading ? (
-            <div style={{ padding: '20px 0', textAlign: 'center' }}>
-              <SpinLoading style={{ '--size': '24px' }} />
-            </div>
+            <div style={{ padding: '20px 0', textAlign: 'center' }}><SpinLoading style={{ '--size': '24px' }} /></div>
           ) : comments.length > 0 ? (
-            <List>
-              {comments.map(comment => (
-                <List.Item
-                  key={comment._id}
-                  prefix={<Avatar src={comment.user?.avatar} style={{ '--size': '36px', borderRadius: '50%' }} />}
-                  description={<div style={styles.commentContent} dangerouslySetInnerHTML={{ __html: comment.content }} />}>
-                  <div style={{ fontSize: 13, color: '#555', fontWeight: 'bold' }}>{comment.user?.nickname}</div>
-                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>{dayjs(comment.createdAt).fromNow()}</div>
-                </List.Item>
-              ))}
-            </List>
+            comments.map(comment => (
+              <div key={comment._id} style={{ display: 'flex', gap: 10, marginBottom: 16 }}>
+                <Avatar src={comment.user?.avatar} style={{ '--size': '36px', borderRadius: '50%' }} />
+                <div style={{ flex: 1 }}>
+                  <div style={{ display: 'flex', alignItems: 'center', gap: 8 }}>
+                    <span style={{ fontSize: 13, fontWeight: 'bold', color: '#555' }}>{comment.user?.nickname}</span>
+                    <span style={{ fontSize: 11, color: '#999' }}>{dayjs(comment.createdAt).fromNow()}</span>
+                  </div>
+                  <div style={{ marginTop: 4 }} dangerouslySetInnerHTML={{ __html: comment.content }} />
+                </div>
+              </div>
+            ))
           ) : (
             <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>还没有评论，快来抢占沙发吧！</div>
           )}
         </div>
 
-        <ActionSheet
-          visible={showLoginAction}
-          actions={[{ key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } }]}
-          cancelText='取消'
-          onClose={() => setShowLoginAction(false)}
-          onAction={handleLoginAction}
-          extra={'查看文章详情和互动需要登录'}
-        />
       </div>
+
+      {/* 登录提示 */}
+      <ActionSheet
+        visible={showLoginAction}
+        actions={[{ key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } }]}
+        cancelText='取消'
+        onClose={() => setShowLoginAction(false)}
+        onAction={handleLoginAction}
+        extra={'查看文章详情和互动需要登录'}
+      />
     </div>
   );
 };
