@@ -263,6 +263,9 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
     setIsExpanded(!isExpanded);
   };
 
+  // 判断是否是当前用户发布的帖子
+  const isOwnPost = isLoggedIn && userInfo?._id === post.author?._id;
+  
   // 决定点赞图标和颜色
   const iconColor = isLoggedIn && isLiked ? BRAND_COLOR : '#999';
   const icon = isLoggedIn && isLiked ? <HeartFill style={{ color: iconColor, fontSize: 20 }} /> : <HeartOutline style={{ fontSize: 20, color: '#999' }} />;
@@ -273,12 +276,25 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
       <div style={styles.header}>
         <img src={post.author?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=1'} alt="" style={styles.avatar} />
         <div style={styles.headerInfo}>
-          <div style={styles.nickname}>{post.author?.nickname || 'City User'}</div>
-          {/*修复1:日期使用fromNow()*/}
-          <div style={styles.time}>{dayjs(post.createdAt).fromNow()}</div>
+          <div style={styles.nickname}>
+            {post.author?.nickname || 'City User'}
+            {isOwnPost && <span style={{ color: BRAND_COLOR, fontSize: '12px', marginLeft: '6px' }}>·我的</span>}
+          </div>
+          {/*修复1:日期使用fromNow()，优化编辑时间显示*/}
+          <div style={styles.time}>
+            {dayjs(post.createdAt).fromNow()}
+            {post.updatedAt && post.updatedAt !== post.createdAt && 
+              <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.updatedAt).format('YYYY-MM-DD HH:mm')}</span>
+            }
+          </div>
         </div>
         <div style={{ flex: 1 }} />
-        <MoreOutline fontSize={20} color="#999" onClick={(e) => { e.stopPropagation(); onAction('more', post); }} />
+        <MoreOutline 
+          fontSize={20} 
+          color={isOwnPost ? BRAND_COLOR : '#999'} 
+          onClick={(e) => { e.stopPropagation(); onAction('more', post, isOwnPost, e); }} 
+          style={{ cursor: isOwnPost ? 'pointer' : 'default' }}
+        />
       </div>
       {post.title && (
         <div style={styles.postTitle}>
@@ -337,6 +353,10 @@ function Home({ isHomeRoute }) {
   const [page, setPage] = useState(1);
   const [isFirstLoading, setIsFirstLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+  // 下拉菜单状态
+  const [menuVisible, setMenuVisible] = useState(false);
+  const [selectedPost, setSelectedPost] = useState(null);
+  const [menuPosition, setMenuPosition] = useState({ x: 0, y: 0 });
 
   // ⭐️ 修正 5/5: 获取当前用户 ID
   const currentUserId = userInfo?._id;
@@ -418,8 +438,8 @@ function Home({ isHomeRoute }) {
     );
   };
 
-  // --- 增强点赞逻辑，保证缓存同步 ---
-  const handleCardAction = useCallback(async (action, post, callback) => {
+  // --- 增强点赞逻辑，保证缓存同步 ---  
+  const handleCardAction = useCallback(async (action, post, isOwnPost = false, e = null, callback) => {
     if (action === 'login_required' || (!isLoggedIn && (action === 'like' || action === 'unlike'))) {
       showThemeModal(
         '尚未登录',
@@ -475,10 +495,76 @@ function Home({ isHomeRoute }) {
     }
 
     if (action === 'more') {
-      //...原有处理逻辑
+      // 只有自己的帖子才显示操作菜单
+      if (isOwnPost) {
+        // 获取点击位置，显示下拉菜单
+        const rect = e?.target?.getBoundingClientRect();
+        if (rect) {
+          setMenuPosition({
+            x: rect.right - 160, // 菜单宽度约160px，显示在图标左侧
+            y: rect.bottom + 5
+          });
+          setSelectedPost(post);
+          setMenuVisible(true);
+        }
+      }
+    }
+    
+    // 处理编辑操作
+    if (action === 'edit') {
+      setMenuVisible(false);
+      // 跳转到编辑页面，并传递帖子数据
+      navigate('/create', {
+        state: {
+          isEdit: true,
+          post: post
+        }
+      });
+    }
+    
+    // 处理删除操作
+    if (action === 'delete') {
+      setMenuVisible(false);
+      // 显示删除确认弹窗
+      showThemeModal(
+        '确认删除',
+        '确定要删除这篇帖子吗？此操作不可撤销。',
+        async () => {
+          try {
+            await service.delete(`/posts/${post._id}`);
+            // 从列表中移除已删除的帖子
+            setData(prevData => prevData.filter(item => item._id !== post._id));
+            Toast.show({ content: '删除成功', icon: 'success' });
+          } catch (error) {
+            console.error('删除失败:', error);
+            Toast.show({ content: '删除失败，请重试', icon: 'fail' });
+          }
+        },
+        '确认删除'
+      );
     }
   }, [navigate, isLoggedIn, currentUserId]);
 
+  // 关闭下拉菜单的函数
+  const closeMenu = () => {
+    setMenuVisible(false);
+    setSelectedPost(null);
+  };
+  
+  // 点击页面其他区域关闭菜单
+  useEffect(() => {
+    const handleClickOutside = () => {
+      if (menuVisible) {
+        setMenuVisible(false);
+      }
+    };
+    
+    document.addEventListener('click', handleClickOutside);
+    return () => {
+      document.removeEventListener('click', handleClickOutside);
+    };
+  }, [menuVisible]);
+  
   // --- 下拉刷新 ---
   const handleRefresh = async () => {
     setPage(1);
@@ -643,6 +729,50 @@ function Home({ isHomeRoute }) {
       }}>
         <AddCircleOutline />
       </div>
+      
+      {/* 下拉菜单组件 */}
+      {menuVisible && selectedPost && (
+        <div 
+          style={{
+            position: 'fixed',
+            left: `${menuPosition.x}px`,
+            top: `${menuPosition.y}px`,
+            background: '#fff',
+            borderRadius: '12px',
+            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
+            width: '140px',
+            zIndex: 2000,
+            border: '1px solid #f0f0f0'
+          }}
+          onClick={(e) => e.stopPropagation()}
+        >
+          <div 
+            style={{
+              padding: '12px 16px',
+              fontSize: '15px',
+              color: '#333',
+              cursor: 'pointer',
+              borderBottom: '1px solid #f5f5f5',
+              transition: 'background-color 0.2s'
+            }}
+            onClick={() => handleCardAction('edit', selectedPost)}
+          >
+            编辑
+          </div>
+          <div 
+            style={{
+              padding: '12px 16px',
+              fontSize: '15px',
+              color: '#ff4d4f',
+              cursor: 'pointer',
+              transition: 'background-color 0.2s'
+            }}
+            onClick={() => handleCardAction('delete', selectedPost)}
+          >
+            删除
+          </div>
+        </div>
+      )}
     </div>
   );
 }

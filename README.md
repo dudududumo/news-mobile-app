@@ -1,48 +1,66 @@
-# 简易资讯移动端 12/1|功能完善
+# 新闻资讯移动端应用
+
+## 项目简介
+
+这是一个基于React与Node.js开发、前后端分离的移动端新闻资讯应用，支持手机号验证码注册登录、富文本内容发布、Feed流无限滚动、点赞评论互动及AI智能标签等核心功能。前端采用React + Ant Design Mobile构建响应式界面，后端以Node.js + Express + MongoDB提供RESTful API，整体技术栈现代化，兼具良好用户体验与横向扩展能力。
 
 ## 目录
 
 - [项目简介](#项目简介)
 - [功能特性](#功能特性)
+  - [用户系统](#用户系统)
+  - [内容管理](#内容管理)
+  - [Feed流](#feed流)
+  - [互动功能](#互动功能)
 - [功能实现详情](#功能实现详情)
+  - [用户系统功能实现](#用户系统功能实现)
+  - [内容管理功能实现](#内容管理功能实现)
+  - [Feed流功能实现](#feed流功能实现)
+  - [互动功能实现](#互动功能实现)
 - [技术栈](#技术栈)
+  - [前端](#前端)
+  - [后端](#后端)
+  - [开发工具](#开发工具)
+- [部署方案](#部署方案)
+  - [前端部署 - Vercel](#前端部署---vercel)
+  - [后端部署 - Zeabur](#后端部署---zeabur)
+  - [图片存储 - 腾讯云COS](#图片存储---腾讯云cos)
 - [项目结构](#项目结构)
 - [快速开始](#快速开始)
+  - [前置要求](#前置要求)
+  - [安装与运行](#安装与运行)
+  - [开发测试账号](#开发测试账号)
+  - [本地开发访问地址](#本地开发访问地址)
 - [RESTful接口设计](#restful接口设计)
-- [数据库设计](#数据库设计)
-- [开发说明](#开发说明)
-- [架构设计](#架构设计)
-- [性能优化方案](#性能优化方案)
-- [埋点设计](#埋点设计)
-- [安全策略文档](#安全策略文档)
-- [许可证](#许可证)
-
-## 项目简介
-
-这是一个基于React和Node.js开发的移动端资讯应用，支持用户注册登录、内容发布、浏览Feed流、互动评论等功能。应用采用前后端分离架构，前端使用React+Ant Design Mobile构建响应式界面，后端使用Node.js+Express+MongoDB提供RESTful API服务。
+  - [1. 用户认证模块](#1-用户认证模块)
+  - [2. 内容管理模块](#2-内容管理模块)
+  - [3. 互动功能模块](#3-互动功能模块)
 
 ## 功能特性
 
 ### 用户系统
-- 手机号注册/登录（验证码验证）
-- JWT认证与权限管理
-- Token刷新机制
+- **手机号验证码登录/注册**：支持手机号一键注册登录，验证码自动发送
+- **用户信息管理**：用户可修改昵称和头像
+- **JWT认证**：基于Token的无状态认证机制，保障系统安全性
+- **会话管理**：自动处理Token过期和刷新
 
 ### 内容管理
-- 短图文内容发布（支持文本和图片）
-- 富文本编辑器支持
-- AI自动标签生成
+- **文章发布**：支持富文本编辑，支持多图上传
+- **文章编辑**：支持文章草稿保存和后续编辑
+- **AI标签生成**：自动根据文章内容生成相关标签
+- **文章删除**：用户可删除自己发布的文章
 
-### Feed流功能
-- 无限滚动加载
-- 下拉刷新功能
-- 内容点赞与评论计数显示
+### Feed流
+- **文章列表**：无限滚动加载，支持下拉刷新
+- **文章详情**：支持富文本内容展示，图片查看
+- **阅读计数**：自动记录文章阅读量
+- **相关推荐**：基于文章标签智能推荐相关内容
 
 ### 互动功能
-- 内容点赞与取消点赞
-- 评论发布与展示
-- 图片查看器支持
-- 点赞状态本地缓存
+- **点赞/取消点赞**：支持文章点赞互动
+- **评论系统**：支持文章评论，评论列表分页加载
+- **评论删除**：用户可删除自己的评论
+- **标签互动**：支持点击标签查看相关文章
 
 ## 功能实现详情
 
@@ -135,6 +153,89 @@
 | 代码规范 | eslint | 8.55.0 | 代码质量检查 |
 | 开发服务器 | nodemon | 3.0.1 | 后端热重载 |
 
+## 部署方案
+
+### 前端部署 - Vercel
+
+#### 部署步骤
+1. 登录 [Vercel](https://vercel.com) 账号
+2. 从GitHub导入项目仓库
+3. 配置项目信息：
+   - 根目录：选择 `frontend` 目录
+   - 环境变量：设置 `NEXT_PUBLIC_API_URL` 为后端API地址
+4. 点击部署按钮，等待部署完成
+
+#### 关键配置
+- **环境变量**：在Vercel项目设置中添加以下环境变量：
+  - `NEXT_PUBLIC_API_URL`: 后端API的基础URL（如 `https://your-backend.zeabur.app/api`）
+  - `NEXT_PUBLIC_COS_URL`: 腾讯云COS的访问域名
+
+#### 部署优势
+- 自动CI/CD：提交代码后自动触发部署
+- 全球CDN：提供更快的访问速度
+- 零配置SSL：自动提供HTTPS支持
+
+### 后端部署 - Zeabur
+
+#### 部署步骤
+1. 登录 [Zeabur](https://zeabur.com) 平台
+2. 创建新项目并导入GitHub仓库
+3. 配置服务：
+   - 根目录：选择 `backend` 目录
+   - 环境变量：配置MongoDB连接、JWT密钥等
+4. 部署并等待服务启动
+
+#### 环境变量配置
+在Zeabur项目设置中必须配置以下环境变量：
+
+```
+# MongoDB连接字符串
+MONGODB_URI=mongodb://username:password@hostname:port/database
+
+# JWT密钥
+JWT_SECRET=your_secure_jwt_secret_key
+
+# 服务器端口
+PORT=3000
+
+# AI服务配置
+VOLC_API_KEY=your_volc_api_key
+VOLC_MODEL_ID=doubao-seed-1-6-251015
+
+# 腾讯云COS配置
+COS_SECRET_ID=your_tencent_cloud_secret_id
+COS_SECRET_KEY=your_tencent_cloud_secret_key
+COS_BUCKET=your_cos_bucket_name
+COS_REGION=your_cos_region
+
+# 生产环境标识
+NODE_ENV=production
+```
+
+#### 部署优势
+- 简单易用：配置简单，部署快速
+- 容器化部署：提供更好的隔离性和可扩展性
+- 自动扩缩容：根据流量自动调整资源
+
+### 图片存储 - 腾讯云COS
+
+#### 配置步骤
+1. 登录 [腾讯云控制台](https://console.cloud.tencent.com)
+2. 创建COS存储桶，选择合适的区域
+3. 获取访问密钥（SecretId和SecretKey）
+4. 配置CORS，允许前端域名访问
+5. 在后端环境变量中配置COS信息
+
+#### 关键配置
+- **存储桶权限**：设置为公共读私有写
+- **CORS配置**：允许前端域名的GET、POST请求
+- **安全设置**：开启防盗链保护资源安全
+
+#### 集成方式
+- 后端通过腾讯云SDK直接上传图片到COS
+- 前端通过后端API间接上传图片，避免暴露密钥
+- 使用CDN加速COS资源访问
+
 ## 项目结构
 
 ```
@@ -173,7 +274,14 @@ news-mobile-app/
 
 ### 安装与运行
 
-#### 后端服务
+#### 实际部署环境
+- **前端应用**: [https://news-mobile-app.vercel.app/](https://news-mobile-app.vercel.app/) - 使用Vercel部署
+- **后端服务**: [https://news-mobile-app.zeabur.app/](https://news-mobile-app.zeabur.app/) - 使用Zeabur部署
+- **图片存储**: [腾讯云COS](https://console.cloud.tencent.com/cos/bucket?bucket=news-mobile-app-1381305971) - news-mobile-app-1381305971
+
+#### 本地开发环境搭建
+
+##### 后端服务
 1. 进入后端目录
    ```bash
    cd backend
@@ -196,6 +304,12 @@ news-mobile-app/
    # AI服务配置
    VOLC_API_KEY=your_volc_api_key
    VOLC_MODEL_ID=doubao-seed-1-6-251015
+
+   # 腾讯云COS配置
+   COS_SECRET_ID=your_tencent_cloud_secret_id
+   COS_SECRET_KEY=your_tencent_cloud_secret_key
+   COS_BUCKET=news-mobile-app-1381305971
+   COS_REGION=your_cos_region
    
    # 开发环境标识
    NODE_ENV=development
@@ -206,7 +320,7 @@ news-mobile-app/
    ```
    服务将在 http://localhost:3000 启动
 
-#### 前端应用
+##### 前端应用
 1. 进入前端目录
    ```bash
    cd frontend
@@ -225,10 +339,10 @@ news-mobile-app/
 - 手机号: 任意有效手机号格式（如13800138000）
 - 验证码: 123456（开发环境固定验证码）
 
-### 项目访问
+### 本地开发访问地址
 - 前端应用: http://localhost:5173
 - 后端API: http://localhost:3000/api
-- 图片资源: http://localhost:3000/uploads
+- 图片资源: 本地开发时通过腾讯云COS存储
 
 ## RESTful接口设计
 

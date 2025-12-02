@@ -115,6 +115,32 @@ const CreatePost = () => {
   const [isAiLoading, setIsAiLoading] = useState(false);
   const isRestoring = useRef(false);
 
+  // 编辑模式相关状态
+  const isEditMode = location.state?.isEdit || false;
+  const editingPost = location.state?.post || null;
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  // 加载编辑数据
+  useEffect(() => {
+    if (isEditMode && editingPost) {
+      // 延迟一下确保组件完全挂载
+      setTimeout(() => {
+        setTitle(editingPost.title || '');
+        setContent(editingPost.content || '');
+        setTags(editingPost.tags || []);
+
+        // 转换图片数据格式
+        if (editingPost.images && editingPost.images.length > 0) {
+          const formattedImages = editingPost.images.map(url => ({
+            url,
+            status: 'done'
+          }));
+          setFileList(formattedImages);
+        }
+      }, 100);
+    }
+  }, [isEditMode, editingPost]);
+
   // ===============================================
   // 🔥🔥🔥 新增逻辑：监听 AI 话题挑战跳转 🔥🔥🔥
   // ===============================================
@@ -268,7 +294,7 @@ const CreatePost = () => {
     }
   };
 
-  // 发布
+  // 发布或更新帖子
   const handleSubmit = async () => {
     if (!content && fileList.length === 0) return Toast.show('内容不能为空');
 
@@ -278,20 +304,40 @@ const CreatePost = () => {
       finalTitle = plainText.slice(0, 20) || '无标题';
     }
 
+    setIsSubmitting(true);
     try {
       const imageUrls = fileList.map(item => item.url).filter(Boolean);
-      await service.post('/posts', {
+      const postData = {
         title: finalTitle,
         content,
         images: imageUrls,
         tags,
         status: 'published'
-      });
-      Toast.show({ content: '发布成功', icon: 'success' });
-      localStorage.removeItem(getDraftKey());
-      navigate('/');
+      };
+
+      if (isEditMode && editingPost) {
+        // 编辑模式：使用PUT请求更新帖子
+        await service.put(`/posts/${editingPost._id}`, postData);
+        Toast.show({ content: '修改保存成功', icon: 'success' });
+      } else {
+        // 创建模式：使用POST请求创建新帖子
+        await service.post('/posts', postData);
+        Toast.show({ content: '发布成功', icon: 'success' });
+        localStorage.removeItem(getDraftKey());
+      }
+
+      // 返回到首页或帖子详情页
+      setTimeout(() => {
+        navigate(isEditMode ? '/post/' + editingPost._id : '/');
+      }, 1500);
     } catch (e) {
       console.error(e);
+      Toast.show({
+        content: isEditMode ? '保存失败，请重试' : '发布失败，请重试',
+        icon: 'fail'
+      });
+    } finally {
+      setIsSubmitting(false);
     }
   };
 
@@ -300,9 +346,19 @@ const CreatePost = () => {
       <NavBar
         style={styles.navBar}
         onBack={() => navigate(-1)}
-        right={<button style={styles.publishBtn} onClick={handleSubmit}>发布</button>}
+        right={<button
+          style={{
+            ...styles.publishBtn,
+            opacity: isSubmitting ? 0.7 : 1,
+            pointerEvents: isSubmitting ? 'none' : 'auto'
+          }}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>}
       >
-        <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>撰写新篇</span>
+        <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>
+          {isEditMode ? '编辑帖子' : '撰写新篇'}
+        </span>
       </NavBar>
 
       <div style={styles.statusBar}>
