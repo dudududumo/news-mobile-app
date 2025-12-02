@@ -582,77 +582,112 @@ const PostDetail = ({ isAuthenticated }) => {
               </div>
             </div>
             {post.relatedPosts?.length > 0 && renderRelatedPosts(post.relatedPosts)}
-            <div ref={commentsSectionRef} style={{ ...styles.commentSection, backgroundColor: 'transparent' }}>
-              <div style={styles.commentListHeader}>
+            <div
+              ref={commentsSectionRef}
+              style={{
+                paddingTop: '16px',
+                marginTop: '25px',
+                borderTop: '1px solid #f0f0f0',
+                backgroundColor: 'transparent', // 整个评论区透明
+              }}
+              className="post-comment-section"
+            >
+              <div style={{ fontSize: 16, fontWeight: 600, color: '#333', marginBottom: 15 }}>
                 评论({commentsCount})
               </div>
-              <div style={styles.commentInputArea}>
+
+              <div style={{ padding: '10px 0', display: 'flex', gap: 8, alignItems: 'flex-end', marginBottom: 20 }}>
                 <TextArea
                   placeholder={isAuthenticated ? '留下你的精彩评论...' : '请登录后才能评论...'}
                   value={commentContent}
                   onChange={setCommentContent}
                   autoSize
-                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px' }}
+                  style={{
+                    flex: 1,
+                    border: '1px solid #ddd',
+                    borderRadius: 8,
+                    padding: '6px 10px',
+                    minHeight: 40,
+                    backgroundColor: 'transparent', // ✅ 输入框透明
+                  }}
                   disabled={!isAuthenticated}
                 />
                 <Button
                   onClick={handleSubmitComment}
-                  color='primary'
-                  style={{ '--border-radius': '8px', '--background-color': BRAND_COLOR, alignSelf: 'flex-end' }}
+                  color="primary"
+                  style={{
+                    '--border-radius': '8px',
+                    '--background-color': BRAND_COLOR,
+                    alignSelf: 'flex-end',
+                  }}
                   disabled={commentContent.trim() === '' || !isAuthenticated}
                 >
                   <SendOutline />
                 </Button>
               </div>
+
               {commentsLoading ? (
                 <Skeleton.Paragraph animated lineCount={3} />
               ) : comments.length === 0 ? (
-                <div style={{ textAlign: 'center', color: '#999', padding: '20px 0', fontSize: '14px' }}>
+                <div style={{ textAlign: 'center', color: '#999', padding: '20px 0', fontSize: 14 }}>
                   暂无评论，快来抢沙发吧!
                 </div>
               ) : (
-                <List>
-                  {comments.map((comment, index) => (
-                    <List.Item
-                      key={comment._id || index}
-                      arrow={false}
-                      style={{ backgroundColor: 'transparent' }} // 确保每个评论项背景透明
-                      description={
-                        <div style={styles.commentContent}>
-                          {comment.content}
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 8 }}>
-                            {/*修复1:评论区日期保持相对时间*/}
-                            {dayjs(comment.createdAt).fromNow()}
+                <div style={{ backgroundColor: 'transparent' }}>
+                  <List className="post-comment-list">
+                    {comments.map((comment, index) => (
+                      <List.Item
+                        key={comment._id || index}
+                        arrow={false}
+                        style={{ backgroundColor: 'transparent' }}
+                        description={
+                          <div style={{ fontSize: 13, color: '#666', marginTop: 4, backgroundColor: 'transparent' }}>
+                            {comment.content}
+                            <div style={{ fontSize: 11, color: '#999', marginTop: 8 }}>
+                              {dayjs(comment.createdAt).fromNow()}
+                            </div>
                           </div>
+                        }
+                      >
+                        <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent' }}>
+                          <img
+                            src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
+                            alt="avatar"
+                            style={{ width: 28, height: 28, borderRadius: '50%', marginRight: 8 }}
+                          />
+                          <span style={{ fontSize: 13, fontWeight: 500, color: '#333' }}>
+                            {comment.user?.nickname || '匿名用户'}
+                          </span>
                         </div>
-                      }
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent' }}>
-                        <img
-                          src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
-                          alt="avatar"
-                          style={{ width: '28px', height: '28px', borderRadius: '50%', marginRight: '8px' }}
-                        />
-                        <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
-                          {comment.user?.nickname || '匿名用户'}
-                        </span>
-                      </div>
-                    </List.Item>
-                  ))}
-                </List>
+                      </List.Item>
+                    ))}
+                  </List>
+                </div>
               )}
+
+              {/* 🔥 强制覆盖 Antd Mobile 内部白底 */}
+              <style>
+                {`
+                  .post-comment-section,
+                  .post-comment-section .adm-list,
+                  .post-comment-section .adm-list-item,
+                  .post-comment-section .adm-list-item-content {
+                    background-color: transparent !important;
+                  }
+
+                  .post-comment-section .adm-list-item-content {
+                    border-bottom: none !important; /* 去掉分割线，如果不需要可删除 */
+                  }
+
+                  .post-comment-section textarea {
+                    background-color: transparent !important;
+                  }
+                `}
+              </style>
             </div>
+
           </>
         )}
-        <style>
-          {`
-            .adm-list, 
-            .adm-list-item, 
-            .adm-list-item-content {
-              background-color: transparent !important;
-            }
-          `}
-        </style>
       </div>
       <ActionSheet
         visible={showLoginAction}
