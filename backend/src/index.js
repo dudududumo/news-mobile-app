@@ -3,22 +3,22 @@ const mongoose = require('mongoose');
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
+const multer = require('multer');
+const COS = require('cos-nodejs-sdk-v5');
 
 const app = express();
 
 // --- CORS 配置 ---
-// 前端 Vercel 域名 + 本地调试端口
 app.use(cors({
   origin: [
     'https://news-mobile-app.vercel.app',
     'http://localhost:5173',
-    'https://news-mobile-app.zeabur.app' // 新增生产域名
+    'https://news-mobile-app.zeabur.app'
   ],
   methods: ['GET', 'POST', 'PUT', 'DELETE', 'OPTIONS'],
   credentials: true,
   allowedHeaders: ['Content-Type', 'Authorization', 'X-Requested-With']
 }));
-
 
 // --- Body Limit ---
 app.use(express.json({ limit: '50mb' }));
@@ -36,6 +36,19 @@ mongoose.connect(process.env.MONGO_URI, {
   .then(() => console.log('✅ MongoDB 已连接'))
   .catch(err => console.error('❌ 数据库连接失败:', err));
 
+// --- 腾讯云 COS 配置 ---
+const cos = new COS({
+  SecretId: process.env.COS_SECRET_ID,
+  SecretKey: process.env.COS_SECRET_KEY
+});
+const BUCKET = process.env.COS_BUCKET; // 例如 news-mobile-app-1381305971
+const REGION = process.env.COS_REGION; // 例如 ap-beijing
+const BASE_URL = `https://${BUCKET}.cos.${REGION}.myqcloud.com`;
+
+// --- 上传配置 (multer, 临时存储到内存) ---
+const storage = multer.memoryStorage();
+const upload = multer({ storage });
+
 // --- 路由挂载 ---
 const authRoutes = require('./routes/auth');
 const postRoutes = require('./routes/posts');
@@ -45,12 +58,41 @@ app.use('/api/posts', postRoutes);
 app.use('/api/auth', authRoutes);
 app.use('/api/analytics', analyticsRoutes);
 
-// --- 静态文件托管 ---
-const uploadDir = path.join(__dirname, '../uploads');
-app.use('/uploads', express.static(uploadDir));
+// --- 图片上传路由 ---
+app.post('/api/posts/upload', upload.array('images', 9), async (req, res) => {
+  try {
+    const files = req.files;
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: '无文件' });
+    }
+
+    const uploadPromises = files.map(file => {
+      const Key = `${Date.now()}-${Math.round(Math.random() * 1e9)}${path.extname(file.originalname)}`;
+      return new Promise((resolve, reject) => {
+        cos.putObject({
+          Bucket: BUCKET,
+          Region: REGION,
+          Key,
+          Body: file.buffer,
+          ContentLength: file.size,
+          ContentType: file.mimetype,
+          StorageClass: 'STANDARD'
+        }, (err, data) => {
+          if (err) return reject(err);
+          resolve(`${BASE_URL}/${Key}`);
+        });
+      });
+    });
+
+    const urls = await Promise.all(uploadPromises);
+    res.json({ urls });
+  } catch (error) {
+    console.error('上传失败:', error);
+    res.status(500).json({ message: '上传失败' });
+  }
+});
 
 // --- 启动服务 ---
-// 强制监听 Zeabur 默认暴露端口 8080
 const PORT = process.env.PORT || 8080;
 app.listen(PORT, () => {
   console.log(`🚀 服务端运行在端口 ${PORT}`);
