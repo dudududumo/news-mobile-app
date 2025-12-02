@@ -63,6 +63,7 @@ const styles = {
   container: {
     minHeight: '100vh',
     paddingBottom: '40px',
+    paddingTop: '72px', // 为固定导航栏留出空间
   },
   navBar: {
     position: 'fixed', top: 0, left: 0, right: 0, height: '56px',
@@ -77,18 +78,28 @@ const styles = {
     padding: '0 20px',
     display: 'flex', justifyContent: 'space-between', alignItems: 'center'
   },
+  backButton: {
+    fontSize: '24px',
+    cursor: 'pointer',
+    padding: '4px',
+    color: '#000',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+  },
   navLogo: {
     fontFamily: '"Playfair Display",serif',
-    fontSize: '24px', fontWeight: '700', color: '#000', letterSpacing: '-0.5px'
+    fontSize: '24px', fontWeight: '700', color: '#000', letterSpacing: '-0.5px',
+    flex: 1,
+    textAlign: 'center'
   },
-  paperCard: {
-    background: '#fff',
-    minHeight: '80vh',
-    margin: '16px',
-    padding: '24px 20px',
-    borderRadius: '12px',
-    boxShadow: '0 4px 16px rgba(62,58,57,0.08)',
-    position: 'relative',
+  // 简化布局，移除内容框设计
+  contentWrapper: {
+    padding: '0 16px',
+    maxWidth: '100%',
+    width: '100%',
   },
   accentLine: {
     position: 'absolute',
@@ -125,13 +136,14 @@ const styles = {
     marginTop: '3px',
   },
   title: {
-    fontSize: '19px',
+    fontSize: '22px',
     fontWeight: '800',
     fontFamily: '"Playfair Display",serif',
     color: '#1a1a1a',
     marginBottom: '12px',
     lineHeight: '1.4',
     textAlign: 'left',
+    width: '100%',
   },
   content: {
     fontSize: '16px',
@@ -140,6 +152,7 @@ const styles = {
     fontFamily: '-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif',
     marginBottom: '16px',
     textAlign: 'left',
+    width: '100%',
   },
   // 图片相关样式已移至ImageGrid组件
   aiSection: {
@@ -502,13 +515,14 @@ const PostDetail = ({ isAuthenticated }) => {
       `}</style>
       <div style={styles.navBar}>
         <div style={styles.navContent}>
-          <div style={styles.navLogo}>City Daily.</div>
-          <div onClick={() => navigate(-1)} style={{ padding: '8px', cursor: 'pointer' }}>
-            返回
+          <div onClick={() => navigate(-1)} style={styles.backButton}>
+            &lt;
           </div>
+          <div style={styles.navLogo}>City Daily.</div>
+          <div style={{ width: '24px' }} /> {/* 占位元素，保持logo居中 */}
         </div>
       </div>
-      <div style={styles.paperCard}>
+      <div style={styles.contentWrapper}>
         <div style={styles.accentLine} />
         {post && (
           <>
@@ -525,7 +539,13 @@ const PostDetail = ({ isAuthenticated }) => {
             {post.title && <div style={styles.title}>{post.title}</div>}
             <div
               className="detail-html ql-editor"
-              style={styles.content}
+              style={{
+                ...styles.content,
+                width: '100%',
+                maxWidth: 'none',
+                margin: '0',
+                padding: '0'
+              }}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
             {post.images?.length > 0 && <ImageGrid images={post.images} />}
