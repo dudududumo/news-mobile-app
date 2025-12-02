@@ -134,13 +134,22 @@ router.post('/ai-label', authMiddleware, async (req, res) => {
 router.post('/upload', authMiddleware, upload.array('images', 9), (req, res) => {
   try {
     const files = req.files;
-    if (!files || files.length === 0) return res.status(400).json({ message: '无文件' });
-    const fileUrls = files.map(file => `http://localhost:3000/uploads/${file.filename}`);
+    if (!files || files.length === 0) {
+      return res.status(400).json({ message: '无文件' });
+    }
+
+    // 自动识别当前域名（Zeabur / 本地）
+    const baseUrl = process.env.BASE_URL || `${req.protocol}://${req.get('host')}`;
+
+    const fileUrls = files.map(file => `${baseUrl}/uploads/${file.filename}`);
     res.json({ urls: fileUrls });
+
   } catch (error) {
+    console.error('上传失败:', error);
     res.status(500).json({ message: '上传失败' });
   }
 });
+
 
 //---7.获取文章详情(GET/posts/:id)✅修复问题1/2:阅读量+1逻辑&isLiked
 router.get('/:id', authMiddleware, async (req, res) => {//详情页添加authMiddleware
