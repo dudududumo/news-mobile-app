@@ -281,14 +281,11 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
             {post.author?.nickname || 'City User'}
             {isOwnPost && <span style={{ color: BRAND_COLOR, fontSize: '12px', marginLeft: '6px' }}>·我的</span>}
           </div>
-          {/*修复1:日期使用fromNow()，优化编辑时间显示，保持与CreatePost页面格式一致*/}
+          {/*修复1:日期使用fromNow()，编辑时间也使用fromNow()格式*/}
           <div style={styles.time}>
             {dayjs(post.createdAt).fromNow()}
             {post.updatedAt && post.updatedAt !== post.createdAt &&
-              <span style={{ marginLeft: '6px' }}>编辑于{new Date(post.updatedAt).toLocaleString('zh-CN', {
-                year: 'numeric', month: '2-digit', day: '2-digit',
-                hour: '2-digit', minute: '2-digit'
-              })}</span>
+              <span style={{ marginLeft: '6px' }}>编辑于{dayjs(post.updatedAt).fromNow()}</span>
             }
           </div>
         </div>

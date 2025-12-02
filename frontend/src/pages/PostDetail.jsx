@@ -530,13 +530,16 @@ const PostDetail = ({ isAuthenticated }) => {
         <div style={styles.accentLine} />
         {post && (
           <>
-            <div style={styles.header}>
+            <div style={{ ...styles.header, alignItems: 'flex-start' }}>
               <img src={post.author?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'} style={styles.avatar} alt="" />
-              <div>
-                <div style={styles.nickname}>{post.author?.nickname || '匿名用户'}</div>
+              <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'flex-start' }}>
+                <div style={{ ...styles.nickname, textAlign: 'left' }}>{post.author?.nickname || '匿名用户'}</div>
                 {/*修复1:主帖子使用YYYY-MM-DD格式*/}
-                <div style={styles.meta}>
+                <div style={{ ...styles.meta, textAlign: 'left' }}>
                   {dayjs(post.createdAt).format('YYYY-MM-DD')}
+                  {post.updatedAt && post.updatedAt !== post.createdAt &&
+                    <span style={{ marginLeft: '8px' }}>编辑于{dayjs(post.updatedAt).format('YYYY-MM-DD')}</span>
+                  }
                 </div>
               </div>
             </div>
