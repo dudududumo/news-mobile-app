@@ -9,6 +9,8 @@ import {
   TextArea,
   Button,
   List,
+  Avatar,
+  SpinLoading,
 } from 'antd-mobile';
 import {
   HeartOutline,
@@ -46,7 +48,7 @@ const getLikedStateFromCache = (postId, userId) => {
 
 
 // ====================================================================
-// 🔥 方案 1: 从 Home 页面引入的 ImageGrid 组件
+// 🔥 新增: 从 Home 页面借鉴的 ImageGrid 组件
 // ====================================================================
 const ImageGrid = ({ images }) => {
   if (!images || images.length === 0) return null;
@@ -86,30 +88,23 @@ const ImageGrid = ({ images }) => {
 
 
 // ====================================================================
-// 🔥 方案 2: 更新样式定义
+// 🔥 更新: 样式定义 (已合并所有样式)
 // ====================================================================
 const styles = {
-  // --- 整体容器 ---
   container: {
     minHeight: '100vh',
     paddingTop: '56px', // 为固定的 NavBar 留出空间
     paddingBottom: '40px',
   },
-  // --- 导航栏 (改为 fixed) ---
   navBar: {
     position: 'fixed',
-    top: 0,
-    left: 0,
-    right: 0,
-    height: '56px',
-    zIndex: 100,
+    top: 0, left: 0, right: 0,
+    height: '56px', zIndex: 100,
     background: 'rgba(255, 255, 255, 0.98)',
     backdropFilter: 'blur(10px)',
     borderBottom: '1px solid #f5f5f5',
-    display: 'flex',
-    alignItems: 'center',
+    display: 'flex', alignItems: 'center',
   },
-  // --- 内容卡片 ---
   paperCard: {
     background: '#fff',
     minHeight: '80vh',
@@ -122,144 +117,83 @@ const styles = {
   accentLine: {
     position: 'absolute',
     top: 0, left: '50%', transform: 'translateX(-50%)',
-    width: '50px',
-    height: '4px',
+    width: '50px', height: '4px',
     background: BRAND_COLOR,
     borderRadius: '0 0 2px 2px',
   },
-  // --- 作者信息 ---
   header: {
-    display: 'flex',
-    alignItems: 'center',
-    marginTop: '16px',
-    marginBottom: '20px',
+    display: 'flex', alignItems: 'center',
+    marginTop: '16px', marginBottom: '20px',
   },
   avatar: {
-    width: '40px',
-    height: '40px',
-    borderRadius: '50%',
-    marginRight: '12px',
-    border: '1px solid #E0E0E0',
-    padding: '1px',
+    width: '40px', height: '40px', borderRadius: '50%',
+    marginRight: '12px', border: '1px solid #E0E0E0', padding: '1px',
   },
-  nickname: {
-    fontSize: '15px',
-    fontWeight: '600',
-    color: '#222',
-  },
-  meta: {
-    fontSize: '12px',
-    color: '#999',
-    marginTop: '3px',
-  },
-  // --- 标题 (字号调小) ---
+  nickname: { fontSize: '15px', fontWeight: '600', color: '#222' },
+  meta: { fontSize: '12px', color: '#999', marginTop: '3px' },
   title: {
     fontSize: '22px', // 缩小字号
-    fontWeight: '800',
-    fontFamily: 'var(--font-serif)',
-    color: '#1a1a1a',
-    marginBottom: '16px', // 调整间距
-    lineHeight: '1.4', // 调整行高
-    borderBottom: '1px solid#f0f0f0',
-    paddingBottom: '16px',
+    fontWeight: '800', fontFamily: 'var(--font-serif)', color: '#1a1a1a',
+    marginBottom: '16px', lineHeight: '1.4',
+    borderBottom: '1px solid #f0f0f0', paddingBottom: '16px',
     textAlign: 'left',
   },
-  // --- 正文 (字号调小) ---
   content: {
     fontSize: '16px', // 缩小字号
-    lineHeight: '1.75', // 调整行高
-    color: '#333',
-    fontFamily: 'var(--font-sans)',
-    marginBottom: '24px',
+    lineHeight: '1.75', color: '#333',
+    fontFamily: 'var(--font-sans)', marginBottom: '24px',
     textAlign: 'left',
   },
-  // --- AI 标签 ---
   aiSection: {
-    background: '#FDF6F5',
-    border: `1px dashed ${BRAND_COLOR}`,
-    borderRadius: '8px',
-    padding: '12px',
-    marginTop: '24px',
-    marginBottom: '24px',
+    background: '#FDF6F5', border: `1px dashed ${BRAND_COLOR}`,
+    borderRadius: '8px', padding: '12px', marginTop: '24px', marginBottom: '24px',
   },
   aiTitle: {
-    fontSize: '14px',
-    color: BRAND_COLOR,
-    fontWeight: 'bold',
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    marginBottom: '8px',
+    fontSize: '14px', color: BRAND_COLOR, fontWeight: 'bold',
+    display: 'flex', alignItems: 'center', gap: '6px', marginBottom: '8px',
   },
-  tagContainer: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-  },
+  tagContainer: { display: 'flex', flexWrap: 'wrap', gap: '8px' },
   aiTag: {
-    background: '#fff',
-    border: `1px solid rgba(160,64,48,0.2)`,
-    color: 'var(--c-text)',
-    padding: '4px 10px',
-    borderRadius: '16px',
-    fontSize: '13px',
-    cursor: 'pointer',
+    background: '#fff', border: `1px solid rgba(160,64,48,0.2)`,
+    color: 'var(--c-text)', padding: '4px 10px',
+    borderRadius: '16px', fontSize: '13px', cursor: 'pointer',
   },
-  // --- 底部操作栏 ---
   statsBar: {
-    display: 'flex',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginTop: '24px',
-    paddingTop: '16px',
-    borderTop: '1px solid #f5f5f5',
-    color: '#888',
-    fontSize: '14px',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center',
+    marginTop: '24px', paddingTop: '16px',
+    borderTop: '1px solid #f5f5f5', color: '#888', fontSize: '14px',
   },
   actionButton: {
-    display: 'flex',
-    alignItems: 'center',
-    gap: '6px',
-    cursor: 'pointer',
-    color: '#555',
-    fontSize: '15px',
+    display: 'flex', alignItems: 'center', gap: '6px',
+    cursor: 'pointer', color: '#555', fontSize: '15px',
   },
-  liked: {
-    color: BRAND_COLOR,
-    fontWeight: '600',
-  },
-  // --- 评论区 ---
+  liked: { color: BRAND_COLOR, fontWeight: '600' },
   commentSection: {
-    marginTop: '30px',
-    borderTop: '1px solid #f0f0f0',
-    paddingTop: '20px',
+    marginTop: '30px', borderTop: '1px solid #f0f0f0', paddingTop: '20px',
   },
   commentInputArea: {
-    padding: '10px 0',
-    display: 'flex',
-    alignItems: 'flex-end',
-    gap: '8px',
-    marginBottom: '20px',
+    padding: '10px 0', display: 'flex',
+    alignItems: 'flex-end', gap: '8px', marginBottom: '20px',
   },
   commentListHeader: {
-    fontSize: '16px',
-    fontWeight: '600',
-    color: '#333',
-    marginBottom: '15px',
-    textAlign: 'left',
+    fontSize: '16px', fontWeight: '600', color: '#333',
+    marginBottom: '15px', textAlign: 'left',
   },
   commentContent: {
-    fontSize: 14,
-    color: '#444',
-    marginTop: 4,
-    lineHeight: 1.6,
-    textAlign: 'left',
+    fontSize: 14, color: '#444',
+    marginTop: 4, lineHeight: 1.6, textAlign: 'left',
+  },
+  relatedSection: {
+    marginTop: '30px', paddingTop: '20px', borderTop: '1px solid #f0f0f0',
+  },
+  relatedItem: {
+    '--prefix-width': '60px', '--align-items': 'flex-start',
   },
 };
 
 // 骨架屏
 const DetailSkeleton = () => (
-  <div style={{ padding: '72px 16px 16px' }}> {/* 调整内边距以适应 fixed navbar */}
+  <div style={{ padding: '72px 16px 16px' }}>
     <Skeleton.Title animated style={{ height: 40, marginBottom: 20 }} />
     <Skeleton.Paragraph animated lineCount={15} />
   </div>
@@ -267,22 +201,42 @@ const DetailSkeleton = () => (
 
 
 const PostDetail = ({ isAuthenticated }) => {
-  // --- Hooks (保持不变) ---
   const { id } = useParams();
   const navigate = useNavigate();
   const location = useLocation();
+
   const [post, setPost] = useState(null);
   const [loading, setLoading] = useState(true);
   const [showLoginAction, setShowLoginAction] = useState(false);
-  const fetchRef = useRef(false);
   const [comments, setComments] = useState([]);
   const [commentContent, setCommentContent] = useState('');
   const [commentsLoading, setCommentsLoading] = useState(true);
+  const [relatedPosts, setRelatedPosts] = useState([]);
+
   const commentsSectionRef = useRef(null);
+  const fetchRef = useRef(false);
   const userInfoStr = localStorage.getItem('userInfo');
   const currentUserId = userInfoStr ? JSON.parse(userInfoStr)._id : null;
 
-  // --- 数据获取逻辑 (保持不变) ---
+  const fetchPostDetail = useCallback(async () => {
+    try {
+      setLoading(true);
+      const res = await service.get(`/posts/${id}`);
+      let fetchedPost = res.data || res;
+      const cachedState = getLikedStateFromCache(id, currentUserId);
+      if (cachedState) {
+        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? cachedState.isLiked : false, likes: cachedState.likes };
+      } else {
+        fetchedPost = { ...fetchedPost, isLiked: isAuthenticated ? fetchedPost.isLiked : false };
+      }
+      setPost(fetchedPost);
+    } catch (e) {
+      Toast.show('内容无法送达');
+    } finally {
+      setLoading(false);
+    }
+  }, [id, currentUserId, isAuthenticated]);
+
   const fetchComments = useCallback(async () => {
     if (!id) return;
     try {
@@ -296,9 +250,19 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]);
 
+  const fetchRelatedPosts = useCallback(async () => {
+    if (!id) return;
+    try {
+      const res = await service.get(`/posts/${id}/related`);
+      setRelatedPosts(res.relatedPosts || []);
+    } catch (e) {
+      console.error('Failed to fetch related posts:', e);
+    }
+  }, [id]);
+
   const handleSubmitComment = async () => {
     if (!isAuthenticated) {
-      Toast.show('请先登录才能评论');
+      setShowLoginAction(true);
       return;
     }
     if (commentContent.trim() === '') {
@@ -317,34 +281,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  const fetchPostDetail = useCallback(async () => {
-    try {
-      setLoading(true);
-      const res = await service.get(`/posts/${id}`);
-      let fetchedPost = res.data || res;
-      const cachedState = getLikedStateFromCache(id, currentUserId);
-      if (cachedState) {
-        fetchedPost = {
-          ...fetchedPost,
-          isLiked: isAuthenticated ? cachedState.isLiked : false,
-          likes: cachedState.likes
-        };
-      } else {
-        fetchedPost = {
-          ...fetchedPost,
-          isLiked: isAuthenticated ? fetchedPost.isLiked : false,
-        };
-      }
-      setPost(fetchedPost);
-    } catch (e) {
-      Toast.show('内容无法送达');
-    } finally {
-      setLoading(false);
-    }
-  }, [id, currentUserId, isAuthenticated]);
-
   useEffect(() => {
-    if (id) {
+    if (id && !fetchRef.current) {
+      fetchRef.current = true;
       fetchPostDetail();
     }
   }, [id, fetchPostDetail]);
@@ -352,6 +291,7 @@ const PostDetail = ({ isAuthenticated }) => {
   useEffect(() => {
     if (post?._id) {
       fetchComments();
+      fetchRelatedPosts();
       if (location.state?.scrollTo === 'comments' && commentsSectionRef.current) {
         const timer = setTimeout(() => {
           commentsSectionRef.current.scrollIntoView({ behavior: 'smooth', block: 'start' });
@@ -359,9 +299,8 @@ const PostDetail = ({ isAuthenticated }) => {
         return () => clearTimeout(timer);
       }
     }
-  }, [post, fetchComments, location.state]);
+  }, [post, fetchComments, fetchRelatedPosts, location.state]);
 
-  // --- 交互逻辑 (保持不变) ---
   const handleCommentClick = () => {
     if (!isAuthenticated) {
       setShowLoginAction(true);
@@ -406,8 +345,6 @@ const PostDetail = ({ isAuthenticated }) => {
     navigate('/create', { state: { autoFillTopic: tag } });
   };
 
-  // --- 渲染逻辑 ---
-
   if (loading) return <DetailSkeleton />;
   if (!post) {
     return <div style={{ paddingTop: 100, textAlign: 'center', color: '#999' }}>内容已随风而去</div>;
@@ -419,7 +356,6 @@ const PostDetail = ({ isAuthenticated }) => {
 
   return (
     <div style={styles.container}>
-      {/* 全局样式注入 */}
       <style>{`
                 :root{--c-terra:${BRAND_COLOR};}
                 .detail-html p{margin-bottom:1em;text-align:left;}
@@ -440,7 +376,7 @@ const PostDetail = ({ isAuthenticated }) => {
         <div style={styles.accentLine} />
 
         <div style={styles.header}>
-          <img src={post.author?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'} style={styles.avatar} alt="" />
+          <img src={post.author?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'} style={styles.avatar} alt="author avatar" />
           <div>
             <div style={styles.nickname}>{post.author?.nickname || '匿名用户'}</div>
             <div style={styles.meta}>
@@ -457,9 +393,7 @@ const PostDetail = ({ isAuthenticated }) => {
           dangerouslySetInnerHTML={{ __html: post.content }}
         />
 
-        {/* ==================================================================== */}
-        {/* 🔥 方案 3: 使用 ImageGrid 组件渲染图片 */}
-        {/* ==================================================================== */}
+        {/* 🔥 优化: 使用 ImageGrid 组件渲染图片 */}
         {post.images?.length > 0 && (
           <ImageGrid images={post.images} />
         )}
@@ -495,17 +429,98 @@ const PostDetail = ({ isAuthenticated }) => {
           </div>
         </div>
 
-        {/* --- 评论区 (保持大部分不变) --- */}
+        {/* ❤️ 保留: 完整的评论区功能 */}
         <div ref={commentsSectionRef} style={styles.commentSection}>
-          {/* ... */}
+          <div style={styles.commentInputArea}>
+            <TextArea
+              placeholder="留下你的看法..."
+              value={commentContent}
+              onChange={val => setCommentContent(val)}
+              autoSize={{ minRows: 1, maxRows: 4 }}
+              style={{ '--font-size': '15px', flex: 1 }}
+            />
+            <Button
+              size="small"
+              onClick={handleSubmitComment}
+              style={{
+                '--background-color': BRAND_COLOR,
+                '--border-color': BRAND_COLOR,
+                '--text-color': '#fff',
+              }}
+            >
+              <SendOutline />
+            </Button>
+          </div>
+
+          <div style={styles.commentListHeader}>
+            全部评论 ({commentsCount})
+          </div>
+          {commentsLoading ? (
+            <div style={{ padding: '20px 0', textAlign: 'center' }}>
+              <SpinLoading style={{ '--size': '24px' }} />
+            </div>
+          ) : comments.length > 0 ? (
+            <List>
+              {comments.map(comment => (
+                <List.Item
+                  key={comment._id}
+                  prefix={<Avatar src={comment.user?.avatar} style={{ '--size': '36px', borderRadius: '50%' }} />}
+                  description={
+                    <div style={styles.commentContent} dangerouslySetInnerHTML={{ __html: comment.content }} />
+                  }
+                >
+                  <div style={{ fontSize: 13, color: '#555', fontWeight: 'bold' }}>
+                    {comment.user?.nickname}
+                  </div>
+                  <div style={{ fontSize: 11, color: '#999', marginTop: 2 }}>
+                    {dayjs(comment.createdAt).fromNow()}
+                  </div>
+                </List.Item>
+              ))}
+            </List>
+          ) : (
+            <div style={{ textAlign: 'center', padding: '20px 0', color: '#999' }}>
+              还没有评论，快来抢占沙发吧！
+            </div>
+          )}
         </div>
+
+        {/* ❤️ 保留: 完整的相关阅读功能 */}
+        {relatedPosts.length > 0 && (
+          <div style={styles.relatedSection}>
+            <div style={styles.commentListHeader}>
+              相关阅读
+            </div>
+            <List>
+              {relatedPosts.map(p => (
+                <List.Item
+                  key={p._id}
+                  onClick={() => navigate(`/post/${p._id}`)}
+                  arrow={false}
+                  style={styles.relatedItem}
+                  prefix={
+                    p.images?.[0] ?
+                      <img
+                        src={p.images[0]}
+                        alt="related"
+                        style={{ width: 50, height: 50, borderRadius: 4, objectFit: 'cover' }}
+                      /> : <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4 }}></div>
+                  }
+                >
+                  <div style={{ fontSize: 15, fontWeight: '500', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                    {p.title || p.content.substring(0, 30)}
+                  </div>
+                  <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{p.author.nickname} · {p.likes} 喜欢</div>
+                </List.Item>
+              ))}
+            </List>
+          </div>
+        )}
       </div>
 
       <ActionSheet
         visible={showLoginAction}
-        actions={[
-          { key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } },
-        ]}
+        actions={[{ key: 'login', text: '去登录', primary: true, style: { color: BRAND_COLOR } }]}
         cancelText='取消'
         onClose={() => setShowLoginAction(false)}
         onAction={handleLoginAction}
@@ -516,4 +531,3 @@ const PostDetail = ({ isAuthenticated }) => {
 };
 
 export default PostDetail;
-
