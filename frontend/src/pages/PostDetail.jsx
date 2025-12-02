@@ -240,6 +240,7 @@ const styles = {
     textAlign: 'left',//修复问题4
     backgroundColor: 'transparent',
   },
+  '.adm-list.adm-list-default': { backgroundColor: 'transparent' },
 };
 //骨架屏(不变)
 const DetailSkeleton = () => (
