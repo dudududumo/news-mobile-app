@@ -582,7 +582,7 @@ const PostDetail = ({ isAuthenticated }) => {
               </div>
             </div>
             {post.relatedPosts?.length > 0 && renderRelatedPosts(post.relatedPosts)}
-            <div ref={commentsSectionRef} style={styles.commentSection}>
+            <div ref={commentsSectionRef} style={{ ...styles.commentSection, backgroundColor: 'transparent' }}>
               <div style={styles.commentListHeader}>
                 评论({commentsCount})
               </div>
@@ -644,6 +644,15 @@ const PostDetail = ({ isAuthenticated }) => {
             </div>
           </>
         )}
+        <style>
+          {`
+            .adm-list, 
+            .adm-list-item, 
+            .adm-list-item-content {
+              background-color: transparent !important;
+            }
+          `}
+        </style>
       </div>
       <ActionSheet
         visible={showLoginAction}
