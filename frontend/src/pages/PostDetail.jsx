@@ -485,37 +485,32 @@ const PostDetail = ({ isAuthenticated }) => {
           )}
         </div>
 
-        {/* ❤️ 保留: 完整的相关阅读功能 */}
-        {relatedPosts.length > 0 && (
-          <div style={styles.relatedSection}>
-            <div style={styles.commentListHeader}>
+
+        {post.relatedPosts?.length > 0 && (
+          <div style={{ marginTop: '40px', paddingTop: '10px', borderTop: '1px dashed #eee' }}>
+            <div style={styles.aiTitle}>
+              <CompassOutline style={{ fontSize: 14 }} />
               相关阅读
             </div>
-            <List>
-              {relatedPosts.map(p => (
-                <List.Item
+            <div style={{ display: 'flex', flexDirection: 'column', gap: '10px' }}>
+              {post.relatedPosts.map(p => (
+                <div
                   key={p._id}
+                  style={{ padding: '8px 0', borderBottom: '1px solid #f0f0f0', cursor: 'pointer' }}
                   onClick={() => navigate(`/post/${p._id}`)}
-                  arrow={false}
-                  style={styles.relatedItem}
-                  prefix={
-                    p.images?.[0] ?
-                      <img
-                        src={p.images[0]}
-                        alt="related"
-                        style={{ width: 50, height: 50, borderRadius: 4, objectFit: 'cover' }}
-                      /> : <div style={{ width: 50, height: 50, background: '#f5f5f5', borderRadius: 4 }}></div>
-                  }
                 >
-                  <div style={{ fontSize: 15, fontWeight: '500', color: '#333', overflow: 'hidden', textOverflow: 'ellipsis', whiteSpace: 'nowrap' }}>
+                  <div style={{ fontSize: '15px', color: '#333', fontWeight: '500' }}>
                     {p.title || p.content.substring(0, 30)}
                   </div>
-                  <div style={{ fontSize: 12, color: '#999', marginTop: 4 }}>{p.author.nickname} · {p.likes} 喜欢</div>
-                </List.Item>
+                  <div style={{ fontSize: '12px', color: '#999', marginTop: '4px' }}>
+                    {p.tags?.slice(0, 2).map(t => `#${t}`).join('') || '相关文章'}
+                  </div>
+                </div>
               ))}
-            </List>
+            </div>
           </div>
         )}
+
       </div>
 
       <ActionSheet
