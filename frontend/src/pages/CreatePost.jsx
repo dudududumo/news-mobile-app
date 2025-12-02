@@ -422,7 +422,7 @@ const CreatePost = () => {
             value={content}
             onChange={setContent}
             modules={quillModules}
-            placeholder="在此记录当下的生活与灵感..."
+            placeholder="在此记录生活与灵感..."
           />
         </div>
 
