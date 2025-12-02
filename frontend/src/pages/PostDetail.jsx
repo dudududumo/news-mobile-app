@@ -63,7 +63,8 @@ const styles = {
   container: {
     minHeight: '100vh',
     paddingBottom: '40px',
-    paddingTop: '72px', // 为固定导航栏留出空间
+    paddingTop: '60px', // 减小与导航栏的间距
+    margin: 0,
   },
   navBar: {
     position: 'fixed', top: 0, left: 0, right: 0, height: '56px',
@@ -100,6 +101,7 @@ const styles = {
     padding: '0 16px',
     maxWidth: '100%',
     width: '100%',
+    margin: '0 auto', // 确保居中
   },
   accentLine: {
     position: 'absolute',
@@ -112,9 +114,9 @@ const styles = {
   header: {
     display: 'flex',
     alignItems: 'center',
-    marginTop: '16px',
-    marginBottom: '24px',
-    paddingLeft: '0',
+    marginTop: '12px', // 减小顶部间距
+    marginBottom: '20px',
+    padding: '0', // 移除左右padding
   },
   avatar: {
     width: '40px',
@@ -213,9 +215,10 @@ const styles = {
     color: BRAND_COLOR,
   },
   commentSection: {
-    marginTop: '30px',
+    marginTop: '25px',
     borderTop: '1px solid#f0f0f0',
-    paddingTop: '20px',
+    paddingTop: '16px',
+    backgroundColor: 'transparent', // 确保背景透明
   },
   commentInputArea: {
     padding: '10px 0',
@@ -612,6 +615,7 @@ const PostDetail = ({ isAuthenticated }) => {
                     <List.Item
                       key={comment._id || index}
                       arrow={false}
+                      style={{ backgroundColor: 'transparent' }} // 确保每个评论项背景透明
                       description={
                         <div style={styles.commentContent}>
                           {comment.content}
