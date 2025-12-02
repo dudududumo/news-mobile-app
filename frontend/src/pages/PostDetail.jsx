@@ -627,7 +627,7 @@ const PostDetail = ({ isAuthenticated }) => {
                         </div>
                       }
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0 }}>
+                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent' }}>
                         <img
                           src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
                           alt="avatar"
