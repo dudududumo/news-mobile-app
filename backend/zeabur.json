@@ -1,0 +1,28 @@
+{
+  "build": {
+    "dockerfile": "",
+    "context": "."
+  },
+  "deploy": {
+    "resources": {
+      "cpu": 1,
+      "memory": 1024
+    },
+    "imagePullPolicy": "IfNotPresent",
+    "imagePullSecrets": [],
+    "restartPolicy": "Always",
+    "env": {
+      "PORT": "8080"
+    }
+  },
+  "retry": {
+    "imagePull": {
+      "maxAttempts": 5,
+      "backoff": {
+        "duration": "5s",
+        "maxDuration": "2m",
+        "factor": 2
+      }
+    }
+  }
+}
