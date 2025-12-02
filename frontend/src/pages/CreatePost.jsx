@@ -234,8 +234,9 @@ const CreatePost = () => {
       const data = res.data || res;
 
       if (data.urls && data.urls.length > 0) {
-        const baseURL = import.meta.env.VITE_API_BASE_URL.replace('/api', '');
-        return { url: baseURL + data.urls[0] }; // 拼接完整后端 URL
+        // 真实后端域名
+        const baseURL = 'https://news-mobile-app-backend.zeabur.app';
+        return { url: baseURL + data.urls[0] }; // 生成完整图片 URL
       }
       throw new Error('上传失败');
     } catch (e) {
@@ -243,6 +244,7 @@ const CreatePost = () => {
       throw e;
     }
   };
+
 
 
 
