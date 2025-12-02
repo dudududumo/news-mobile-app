@@ -311,4 +311,71 @@ router.get('/:id/comments', async (req, res) => {
   }
 });
 
+// --- 13. 删除帖子 ---  
+router.delete('/:id', authMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ message: '请登录后删除帖子' });
+
+  try {
+    const { id } = req.params;
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: '无效的文章ID' });
+
+    // 检查帖子是否存在且属于当前用户
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: '帖子不存在' });
+    
+    // 确保只能删除自己的帖子
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({ message: '无权删除此帖子' });
+    }
+
+    // 删除帖子
+    await Post.findByIdAndDelete(id);
+    res.json({ message: '删除成功' });
+  } catch (error) {
+    console.error('删除帖子失败:', error);
+    res.status(500).json({ message: '删除失败', error: error.message });
+  }
+});
+
+// --- 14. 更新帖子 ---  
+router.put('/:id', authMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ message: '请登录后编辑帖子' });
+
+  try {
+    const { id } = req.params;
+    const { title, content, images, tags } = req.body;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: '无效的文章ID' });
+
+    // 检查帖子是否存在且属于当前用户
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: '帖子不存在' });
+    
+    // 确保只能编辑自己的帖子
+    if (post.author.toString() !== userId) {
+      return res.status(403).json({ message: '无权编辑此帖子' });
+    }
+
+    // 更新帖子内容
+    const updatedPost = await Post.findByIdAndUpdate(
+      id,
+      {
+        title: title || '',
+        content,
+        images: images || [],
+        tags: tags || [],
+        updatedAt: new Date()
+      },
+      { new: true }
+    ).populate('author', 'nickname avatar');
+
+    res.json(updatedPost);
+  } catch (error) {
+    console.error('更新帖子失败:', error);
+    res.status(500).json({ message: '更新失败', error: error.message });
+  }
+});
+
 module.exports = router;
