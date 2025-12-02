@@ -7,6 +7,8 @@ const User = require('../models/User');
 const authMiddleware = require('../middleware/authMiddleware');
 const multer = require('multer');
 const path = require('path');
+const fs = require('fs');
+const os = require('os');
 const OpenAI = require('openai');
 const COS = require('cos-nodejs-sdk-v5');
 
@@ -37,7 +39,7 @@ router.get('/', authMiddleware, async (req, res) => {
     const skip = (page - 1) * limit;
     const userId = req.user?.userId;
 
-    let posts = await Post.find({ status: 'published' })
+    const posts = await Post.find({ status: 'published' })
       .sort({ createdAt: -1 })
       .skip(skip)
       .limit(limit)
@@ -70,7 +72,7 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const newPost = new Post({
       title: title || '',
-      content: content,
+      content,
       images: images || [],
       tags: tags || [],
       author: req.user.userId,
@@ -106,8 +108,8 @@ router.post('/ai-label', authMiddleware, async (req, res) => {
       const aiResult = completion.choices[0].message.content;
       const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
       tags = JSON.parse(cleanJson);
-    } catch (e) {
-      console.error('JSON解析失败，使用默认标签');
+    } catch {
+      console.error('AI JSON解析失败，使用默认标签');
       tags = ['AI推荐', '热点'];
     }
     res.json({ tags, confidence: 0.9 });
@@ -121,40 +123,44 @@ router.post('/ai-label', authMiddleware, async (req, res) => {
 router.post('/upload', authMiddleware, upload.array('images', 9), async (req, res) => {
   try {
     const files = req.files;
-    if (!files || files.length === 0) return res.status(400).json({ message: '无文件' });
+    if (!files || !files.length) return res.status(400).json({ message: '无文件' });
 
     const urls = [];
 
-    await Promise.all(files.map(file => {
-      return new Promise((resolve, reject) => {
-        const ext = path.extname(file.originalname);
-        const key = `uploads/${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
+    for (const file of files) {
+      const ext = path.extname(file.originalname);
+      const tempFilePath = path.join(os.tmpdir(), `${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`);
+      fs.writeFileSync(tempFilePath, file.buffer);
 
-        // 使用 sliceUploadFile 分片上传，支持 MAZ 桶
+      if (!fs.existsSync(tempFilePath)) {
+        console.error('临时文件不存在', tempFilePath);
+        return res.status(500).json({ message: '临时文件不存在' });
+      }
+
+      const key = `uploads/${Date.now()}_${Math.random().toString(36).slice(2)}${ext}`;
+
+      await new Promise((resolve, reject) => {
         cos.sliceUploadFile({
           Bucket: BUCKET,
           Region: REGION,
           Key: key,
-          Body: file.buffer,
+          FilePath: tempFilePath,
           ContentType: file.mimetype
-        }, (err, data) => {
-          if (err) {
-            console.error('COS 上传出错:', err);
-            return reject(err);
-          }
+        }, (err) => {
+          fs.unlinkSync(tempFilePath);
+          if (err) return reject(err);
           urls.push(`https://${BUCKET}.cos.${REGION}.myqcloud.com/${key}`);
           resolve();
         });
       });
-    }));
+    }
 
     res.json({ urls });
   } catch (error) {
     console.error('上传失败:', error);
-    res.status(500).json({ message: '上传失败' });
+    res.status(500).json({ message: '上传失败', error });
   }
 });
-
 
 // --- 8. 获取文章详情 ---
 router.get('/:id', authMiddleware, async (req, res) => {
@@ -171,7 +177,7 @@ router.get('/:id', authMiddleware, async (req, res) => {
 
     if (!updatedPost) return res.status(404).json({ message: '文章不存在或未发布' });
 
-    let postObject = updatedPost.toObject();
+    const postObject = updatedPost.toObject();
     postObject.isLiked = userId ? postObject.likesUsers?.map(uid => uid.toString()).includes(userId) : false;
     postObject.likes = postObject.likes || 0;
     postObject.commentsCount = postObject.commentsCount || 0;
@@ -202,17 +208,14 @@ router.post('/:id/like', authMiddleware, async (req, res) => {
 
   try {
     const { id } = req.params;
-
     const updateResult = await Post.updateOne(
       { _id: id, likesUsers: { $ne: userId } },
       { $addToSet: { likesUsers: userId }, $inc: { likes: 1 } }
     );
-
     if (updateResult.matchedCount === 0) {
       const postExists = await Post.findById(id).select('_id');
       if (!postExists) return res.status(404).json({ message: '文章不存在' });
     }
-
     res.json({ message: '点赞成功' });
   } catch (error) {
     console.error('点赞失败:', error);
@@ -227,17 +230,14 @@ router.post('/:id/unlike', authMiddleware, async (req, res) => {
 
   try {
     const { id } = req.params;
-
     const result = await Post.updateOne(
       { _id: id, likesUsers: userId },
       { $pull: { likesUsers: userId }, $inc: { likes: -1 } }
     );
-
     if (result.matchedCount === 0) {
       const postExists = await Post.findById(id).select('_id');
       if (!postExists) return res.status(404).json({ message: '文章不存在' });
     }
-
     res.json({ message: '取消点赞成功' });
   } catch (error) {
     console.error('取消点赞失败:', error);
@@ -265,6 +265,7 @@ router.post('/:id/comments', authMiddleware, async (req, res) => {
 
     const user = await User.findById(userId, 'nickname avatar');
     const savedComment = post.comments[post.comments.length - 1];
+
     res.status(201).json({
       success: true,
       comment: {
