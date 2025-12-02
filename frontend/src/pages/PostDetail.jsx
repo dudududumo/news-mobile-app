@@ -537,7 +537,7 @@ const PostDetail = ({ isAuthenticated }) => {
                 {/*修复1:主帖子使用YYYY-MM-DD格式*/}
                 <div style={{ ...styles.meta, textAlign: 'left' }}>
                   {dayjs(post.createdAt).format('YYYY-MM-DD')}
-                  {post.updatedAt && post.updatedAt !== post.createdAt &&
+                  {post.updatedAt && dayjs(post.updatedAt).isAfter(dayjs(post.createdAt)) &&
                     <span style={{ marginLeft: '8px' }}>编辑于{dayjs(post.updatedAt).format('YYYY-MM-DD')}</span>
                   }
                 </div>
