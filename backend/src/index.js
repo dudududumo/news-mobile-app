@@ -12,6 +12,7 @@ const app = express();
 app.use(cors({
   origin: [
     'https://news-mobile-app.vercel.app',
+    'https://news-mobile-40kn0xvyn-dudududumos-projects.vercel.app',
     'http://localhost:5173',
     'https://news-mobile-app.zeabur.app'
   ],
