@@ -14,16 +14,53 @@ const styles = {
     paddingBottom: '40px',
   },
   navBar: {
-    //background: 'rgba(239, 235, 233, 0.9)',
-    borderBottom: '1px solid rgba(0,0,0,0.05)',
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
+    position: 'fixed', top: 0, left: 0, right: 0, height: '56px',
+    background: 'rgba(255,255,255,0.98)',
     backdropFilter: 'blur(10px)',
+    display: 'flex', alignItems: 'center',
+    zIndex: 1000,
+    borderBottom: '1px solid#f5f5f5',
+  },
+  navContent: {
+    width: '100%',
+    padding: '0 16px',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+  },
+  backButton: {
+    fontSize: '24px',
+    cursor: 'pointer',
+    padding: '4px',
+    color: '#000',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
+  },
+  contentHeader: {
+    padding: '60px 16px 0',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
+    marginBottom: '16px',
+  },
+  titleText: {
+    fontWeight: 'bold',
+    color: 'var(--c-text)',
+    fontSize: '18px',
+  },
+  publishBtn: {
+    fontSize: '14px',
+    fontWeight: '500',
+    padding: '6px 16px',
+    borderRadius: '20px',
+    background: 'var(--c-terra)',
+    border: 'none',
+    color: '#fff',
   },
   paperCard: {
     background: '#fff',
-    margin: '16px',
+    margin: '0 16px',
     padding: '20px',
     borderRadius: '12px',
     boxShadow: '0 4px 12px rgba(160, 64, 48, 0.05)',
@@ -35,7 +72,7 @@ const styles = {
     paddingBottom: '16px',
   },
   statusBar: {
-    padding: '0 20px 10px',
+    padding: '10px 20px',
     fontSize: '12px',
     color: '#999',
     textAlign: 'right',
@@ -79,15 +116,6 @@ const styles = {
     padding: '4px 12px',
     borderRadius: '4px',
     fontSize: '13px',
-  },
-  publishBtn: {
-    fontSize: '14px',
-    fontWeight: '500',
-    padding: '6px 16px',
-    borderRadius: '20px',
-    background: 'var(--c-terra)',
-    border: 'none',
-    color: '#fff',
   }
 };
 
@@ -114,6 +142,7 @@ const CreatePost = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
   const isRestoring = useRef(false);
+  const quillRef = useRef(null);
 
   // ===============================================
   // 🔥🔥🔥 新增逻辑：监听 AI 话题挑战跳转 🔥🔥🔥
@@ -224,6 +253,28 @@ const CreatePost = () => {
     return () => clearTimeout(timer);
   }, [title, content, tags, fileList]);
 
+  // 修复手机端选中文字后样式应用问题
+  useEffect(() => {
+    if (!quillRef.current) return;
+
+    // 针对移动设备的特殊处理
+    const isMobile = /iPhone|iPad|iPod|Android/i.test(navigator.userAgent);
+    if (isMobile) {
+      const toolbar = quillRef.current.getModule('toolbar');
+      const toolbarElement = toolbar.container;
+
+      // 为工具栏按钮添加触摸事件处理
+      const buttons = toolbarElement.querySelectorAll('.ql-toolbar button, .ql-toolbar .ql-picker');
+      buttons.forEach(button => {
+        button.addEventListener('touchstart', (e) => {
+          e.preventDefault();
+          // 手动触发点击事件，确保在移动设备上能正确应用样式
+          button.click();
+        }, { passive: false });
+      });
+    }
+  }, []);
+
   // 图片上传
   const uploadImage = async (file) => {
     const formData = new FormData();
@@ -242,7 +293,6 @@ const CreatePost = () => {
       throw e;
     }
   };
-
 
 
 
@@ -297,13 +347,22 @@ const CreatePost = () => {
 
   return (
     <div style={styles.container}>
-      <NavBar
-        style={styles.navBar}
-        onBack={() => navigate(-1)}
-        right={<button style={styles.publishBtn} onClick={handleSubmit}>发布</button>}
-      >
-        <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>撰写新篇</span>
-      </NavBar>
+      {/* 顶部白条导航栏 */}
+      <div style={styles.navBar}>
+        <div style={styles.navContent}>
+          <div style={styles.backButton} onClick={() => navigate(-1)}>
+            &lt;
+          </div>
+          <div></div> {/* 占位 */}
+          <div></div> {/* 占位 */}
+        </div>
+      </div>
+
+      {/* 内容标题和发布按钮区域 */}
+      <div style={styles.contentHeader}>
+        <span style={styles.titleText}>撰写新篇</span>
+        <button style={styles.publishBtn} onClick={handleSubmit}>发布</button>
+      </div>
 
       <div style={styles.statusBar}>
         {lastSaved ? `草稿已保存 ${lastSaved.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })}` : ''}
@@ -381,6 +440,9 @@ const CreatePost = () => {
               background: #fff;
               z-index: 10;
               padding: 8px 0;
+              display: flex;
+              flex-wrap: wrap;
+              gap: 4px;
             }
             .ql-container.ql-snow { border: none !important; }
             
@@ -415,9 +477,66 @@ const CreatePost = () => {
             .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: '超大'; font-size: 22px; }
 
             .ql-editor.ql-blank::before { color: #BCAAA4; font-style: normal; }
+            
+            /* 移动端优化 - 工具栏按钮样式调整 */
+            @media (max-width: 768px) {
+              .ql-toolbar.ql-snow {
+                padding: 10px 0;
+                gap: 8px;
+              }
+              
+              .ql-toolbar.ql-snow .ql-formats {
+                margin: 0 !important;
+                padding: 0 !important;
+                display: flex;
+                flex-wrap: wrap;
+                gap: 4px;
+              }
+              
+              .ql-toolbar.ql-snow button {
+                width: 36px;
+                height: 36px;
+                border-radius: 6px;
+                display: flex;
+                align-items: center;
+                justify-content: center;
+                margin: 0 !important;
+                background: #f8f8f8;
+                border: 1px solid #e0e0e0;
+              }
+              
+              .ql-toolbar.ql-snow button:hover,
+              .ql-toolbar.ql-snow button.ql-active {
+                background: #f0f0f0;
+                border-color: var(--c-terra);
+              }
+              
+              .ql-toolbar.ql-snow .ql-picker {
+                margin: 0 !important;
+                width: auto;
+              }
+              
+              .ql-snow .ql-picker {
+                width: auto;
+                min-width: 60px;
+              }
+              
+              .ql-snow .ql-picker .ql-picker-label,
+              .ql-snow .ql-picker .ql-picker-item {
+                padding: 8px 12px;
+                font-size: 14px;
+              }
+              
+              /* 分段显示工具栏，避免拥挤 */
+              .ql-toolbar.ql-snow > div:not(:last-child) {
+                margin-bottom: 6px;
+                width: 100%;
+              }
+            }
           `}</style>
 
           <ReactQuill
+            ref={quillRef}
             theme="snow"
             value={content}
             onChange={setContent}
