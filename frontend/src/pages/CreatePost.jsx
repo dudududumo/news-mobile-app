@@ -234,9 +234,7 @@ const CreatePost = () => {
       const data = res.data || res;
 
       if (data.urls && data.urls.length > 0) {
-        // 真实后端域名
-        const baseURL = 'https://news-mobile-app-backend.zeabur.app';
-        return { url: baseURL + data.urls[0] }; // 生成完整图片 URL
+        return { url: data.urls[0] }; // COS 返回的 URL 已经完整
       }
       throw new Error('上传失败');
     } catch (e) {
@@ -244,6 +242,7 @@ const CreatePost = () => {
       throw e;
     }
   };
+
 
 
 
