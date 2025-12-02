@@ -13,6 +13,31 @@ dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');//确保fromNow()是中文的
 const BRAND_COLOR = '#a04030';
 
+// 图片网格组件 - 与Home页面保持一致
+const ImageGrid = ({ images }) => {
+  if (!images || images.length === 0) return null;
+  const count = images.length;
+  if (count === 1) {
+    return (
+      <div style={{ marginTop: '12px', borderRadius: '8px', overflow: 'hidden', border: '1px solid#f0f0f0' }}>
+        <img src={images[0]} style={{ width: '100%', maxHeight: '500px', objectFit: 'cover', display: 'block' }} alt=""
+          onClick={() => { ImageViewer.Multi.show({ images }); }} />
+      </div>
+    );
+  }
+  let cols = count === 2 || count === 4 ? '1fr 1fr' : '1fr 1fr 1fr';
+  return (
+    <div style={{ display: 'grid', gridTemplateColumns: cols, gap: '6px', marginTop: '12px' }}>
+      {images.map((img, idx) => (
+        <div key={idx} style={{ aspectRatio: '1/1', position: 'relative' }}>
+          <img src={img} style={{ width: '100%', height: '100%', objectFit: 'cover', borderRadius: '4px', background: '#f8f8f8' }} alt=""
+            onClick={() => { ImageViewer.Multi.show({ images, defaultIndex: idx }); }} />
+        </div>
+      ))}
+    </div>
+  );
+}
+
 // ⭐️ 修正 1/4: 缓存 Key 绑定用户 ID
 const getCacheKey = (userId) => `likeCache_${userId}`;
 
@@ -40,12 +65,21 @@ const styles = {
     paddingBottom: '40px',
   },
   navBar: {
-    position: 'sticky',
-    top: 0,
-    zIndex: 100,
-    background: 'rgba(239,235,233,0.9)',
+    position: 'fixed', top: 0, left: 0, right: 0, height: '56px',
+    background: 'rgba(255,255,255,0.98)',
     backdropFilter: 'blur(10px)',
-    borderBottom: '1px solid rgba(0,0,0,0.05)',
+    display: 'flex', alignItems: 'center',
+    zIndex: 1000,
+    borderBottom: '1px solid#f5f5f5',
+  },
+  navContent: {
+    width: '100%',
+    padding: '0 20px',
+    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+  },
+  navLogo: {
+    fontFamily: '"Playfair Display",serif',
+    fontSize: '24px', fontWeight: '700', color: '#000', letterSpacing: '-0.5px'
   },
   paperCard: {
     background: '#fff',
@@ -86,40 +120,28 @@ const styles = {
     lineHeight: '1.2',
   },
   meta: {
-    fontSize: '11px',
+    fontSize: '12px',
     color: '#999',
-    marginTop: '2px',
+    marginTop: '3px',
   },
   title: {
-    fontSize: '26px',
-    fontWeight: '900',
-    fontFamily: 'var(--font-serif)',
+    fontSize: '19px',
+    fontWeight: '800',
+    fontFamily: '"Playfair Display",serif',
     color: '#1a1a1a',
-    marginBottom: '20px',
-    lineHeight: '1.3',
-    borderBottom: '1px solid#f0f0f0',
-    paddingBottom: '16px',
+    marginBottom: '12px',
+    lineHeight: '1.4',
     textAlign: 'left',
   },
   content: {
-    fontSize: '17px',
-    lineHeight: '1.8',
+    fontSize: '16px',
+    lineHeight: '1.7',
     color: '#333',
-    fontFamily: 'var(--font-sans)',
-    marginBottom: '24px',
+    fontFamily: '-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif',
+    marginBottom: '16px',
     textAlign: 'left',
   },
-  imageWrapper: {
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-    marginBottom: '32px',
-  },
-  singleImage: {
-    width: '100%',
-    borderRadius: '4px',
-    boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
-  },
+  // 图片相关样式已移至ImageGrid组件
   aiSection: {
     background: '#FDF6F5',
     border: `1px dashed${BRAND_COLOR}`,
@@ -461,6 +483,12 @@ const PostDetail = ({ isAuthenticated }) => {
           margin:10px 0;
           display:block;
         }
+        /* 统一内容字体样式 */
+        .detail-html {
+          font-family:-apple-system,BlinkMacSystemFont,"Helvetica Neue",Helvetica,Arial,sans-serif;
+          font-size:16px;
+          line-height:1.7;
+        }
         .detail-html h1,.detail-html h2,.detail-html h3{
           font-family:var(--font-serif);
           margin:20px 0 10px 0;
@@ -472,9 +500,14 @@ const PostDetail = ({ isAuthenticated }) => {
         .detail-html strong{font-weight:700;color:#000;}
         .detail-html*{text-align:left;}
       `}</style>
-      <NavBar onBack={() => navigate(-1)} style={styles.navBar}>
-        <span style={{ fontFamily: 'var(--font-serif)', fontWeight: 'bold' }}>City Daily.</span>
-      </NavBar>
+      <div style={styles.navBar}>
+        <div style={styles.navContent}>
+          <div style={styles.navLogo}>City Daily.</div>
+          <div onClick={() => navigate(-1)} style={{ padding: '8px', cursor: 'pointer' }}>
+            返回
+          </div>
+        </div>
+      </div>
       <div style={styles.paperCard}>
         <div style={styles.accentLine} />
         {post && (
@@ -495,19 +528,7 @@ const PostDetail = ({ isAuthenticated }) => {
               style={styles.content}
               dangerouslySetInnerHTML={{ __html: post.content }}
             />
-            {post.images?.length > 0 && (
-              <div style={styles.imageWrapper}>
-                {post.images.map((img, i) => (
-                  <img
-                    key={i}
-                    src={img}
-                    style={styles.singleImage}
-                    onClick={() => ImageViewer.Multi.show({ images: post.images, defaultIndex: i })}
-                    alt=""
-                  />
-                ))}
-              </div>
-            )}
+            {post.images?.length > 0 && <ImageGrid images={post.images} />}
             {post.tags?.length > 0 && (
               <div style={styles.aiSection}>
                 <div style={styles.aiTitle}>
