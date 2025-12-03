@@ -266,9 +266,23 @@ const PostDetail = ({ isAuthenticated }) => {
   const [commentsLoading, setCommentsLoading] = useState(true);
   const commentsSectionRef = useRef(null);
 
-  // ⭐️ 新增：获取当前用户 ID
-  const userInfoStr = localStorage.getItem('userInfo');
-  const currentUserId = userInfoStr ? JSON.parse(userInfoStr)._id : null;
+  // ⭐️ 新增：获取当前用户信息
+  const [userInfo, setUserInfo] = useState(null);
+  
+  // 从localStorage获取用户信息
+  useEffect(() => {
+    const savedUserInfo = localStorage.getItem('userInfo');
+    if (savedUserInfo) {
+      try {
+        setUserInfo(JSON.parse(savedUserInfo));
+      } catch (error) {
+        console.error('解析用户信息失败:', error);
+        localStorage.removeItem('userInfo');
+      }
+    }
+  }, []);
+  
+  const currentUserId = userInfo?._id;
 
 
   //获取评论列表 (不变)
@@ -691,6 +705,10 @@ const PostDetail = ({ isAuthenticated }) => {
                         />
                         <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
                           {comment.user?.nickname || '匿名用户'}
+                          {/* 添加"我的"标识 */}
+                          {currentUserId && comment.user?._id === currentUserId && (
+                            <span style={{ fontSize: 11, color: '#999', marginLeft: '4px' }}>(我的)</span>
+                          )}
                         </span>
                       </div>
                     </List.Item>
