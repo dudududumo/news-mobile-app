@@ -299,7 +299,7 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
           onClick={(e) => {
             e.stopPropagation();
             if (isOwnPost) {
-              // 获取点击位置，显示下拉菜单
+              // 获取点击位置，切换下拉菜单显示状态
               const rect = e.target.getBoundingClientRect();
               const cardRect = e.currentTarget.closest('[style*="position: relative"]').getBoundingClientRect();
 
@@ -308,7 +308,8 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
               const y = rect.bottom - cardRect.top;
 
               setMenuPosition({ x: x - 140, y: y + 5 });
-              setMenuVisible(true);
+              // 点一次显示，再点一次隐藏
+              setMenuVisible(prev => !prev);
             }
           }}
           style={{ cursor: isOwnPost ? 'pointer' : 'default' }}
@@ -370,7 +371,7 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
             borderRadius: '16px',
             boxShadow: '0 8px 24px rgba(160, 64, 48, 0.15)',
             width: '140px',
-            zIndex: 2000,
+            zIndex: 900, // 小于导航栏的z-index(1000)，确保导航栏在下拉菜单之上
             border: '1px solid rgba(160, 64, 48, 0.1)',
             transform: 'translate3d(0, 0, 0)',
             maxWidth: 'calc(100% - 20px)',
