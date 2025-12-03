@@ -659,69 +659,50 @@ news-mobile-app/
 #### 概述
 埋点功能用于收集用户行为数据，帮助分析用户使用习惯和优化产品体验。项目采用前后端分离的埋点方案，前端负责采集和批量发送数据，后端负责接收和存储数据。
 
-#### 前端实现
+#### 埋点方案
 
-**文件位置**：`frontend/src/services/analytics.js`
+| 埋点名 | 说明 | 字段 | 存储 & 查看方案 |
+| --- | --- | --- | --- |
+| `page_view` | 页面浏览事件 | `{ event, timestamp, url, page_id }` | 存储：MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
+| `comment_delete` | 评论删除事件 | `{ event, timestamp, url, post_id, comment_id }` | 存储：MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
 
-**核心功能**：
-- 实现了`AnalyticsService`类，提供埋点数据采集和发送功能
+#### 实现细节
+
+**前端实现**：`frontend/src/services/analytics.js`
+- 实现了`AnalyticsService`类，提供`track()`方法进行埋点采集
 - 支持批量发送机制：每10条事件或每5秒自动发送一次
-- 事件数据包含：`event`、`timestamp`、`url`和自定义`metadata`
+- 使用方式：
+  ```javascript
+  import analytics from '../services/analytics';
+  analytics.track('page_view', { page_id: 'home_feed' });
+  ```
 
-**使用方式**：
-```javascript
-import analytics from '../services/analytics';
+**后端实现**：
+- **数据模型**：`backend/src/models/Analytics.js`
+  ```javascript
+  const analyticsSchema = new mongoose.Schema({
+    event: { type: String, required: true, index: true },
+    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
+    timestamp: { type: Date, default: Date.now },
+    url: String,
+    metadata: { type: mongoose.Schema.Types.Mixed }
+  });
+  ```
+- **API接口**：`/api/analytics/batch`（POST）
+  - 批量接收埋点数据
+  - 支持每批最多100条数据
+  - 提供部分插入成功的容错处理
 
-// 记录页面浏览事件
-analytics.track('page_view', { page_id: 'home_feed' });
-
-// 记录评论删除事件
-analytics.track('comment_delete', { post_id: 'post_id', comment_id: 'comment_id' });
-```
-
-**已实现的埋点事件**：
-- `page_view`：页面浏览事件（在首页使用）
-- `comment_delete`：评论删除事件（在帖子详情页使用）
-
-#### 后端实现
-
-**数据模型**：`backend/src/models/Analytics.js`
-
-```javascript
-const analyticsSchema = new mongoose.Schema({
-  event: { type: String, required: true, index: true }, // 事件名称
-  user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' }, // 用户ID（可选）
-  timestamp: { type: Date, default: Date.now }, // 事件时间
-  url: String, // 页面URL
-  metadata: { type: mongoose.Schema.Types.Mixed } // 额外的JSON数据
-});
-```
-
-**API接口**：`backend/src/routes/analytics.js`
-
-| 接口名 | 方法 | 说明 |
-| --- | --- | --- |
-| `/api/analytics/batch` | POST | 批量接收埋点数据，支持批量插入，提高性能 |
-
-**接口功能**：
-- 支持批量接收埋点数据
-- 包含数据库连接状态检查
-- 实现批量插入逻辑，每批最多100条
-- 支持部分插入成功的容错处理
-- 提供详细的日志记录
-
-#### 数据流
-1. 前端页面调用`analytics.track()`方法记录用户行为
+**数据流**：
+1. 前端调用`analytics.track()`记录用户行为
 2. 事件数据被缓存到队列中
-3. 当队列满10条或每5秒，自动调用`flush()`方法发送数据
-4. 后端`/api/analytics/batch`接口接收数据
-5. 数据经过处理后批量插入到MongoDB数据库
+3. 达到发送条件时自动调用`flush()`方法发送数据
+4. 后端接收数据并批量插入到MongoDB
 
-#### 扩展性
-埋点系统设计具有良好的扩展性，可以：
-- 轻松添加新的埋点事件
-- 扩展metadata字段以存储更多自定义数据
-- 调整批量发送的大小和频率
+**扩展性**：
+- 可轻松添加新的埋点事件
+- 可扩展`metadata`字段存储更多自定义数据
+- 可调整批量发送的大小和频率
 - 后续可添加数据分析和可视化功能
 
 ### 安全策略文档
