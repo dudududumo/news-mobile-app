@@ -501,9 +501,29 @@ function Home({ isHomeRoute }) {
         // 获取点击位置，显示下拉菜单
         const rect = e?.target?.getBoundingClientRect();
         if (rect) {
+          // 计算菜单位置，确保显示在按钮右侧下方且不超出视口
+          const menuWidth = 160;
+          const menuHeight = 150; // 预估菜单高度
+
+          // 计算x坐标：优先显示在按钮右侧，若超出视口则显示在左侧
+          let x = rect.right + 5;
+          if (x + menuWidth > window.innerWidth - 10) {
+            x = rect.left - menuWidth - 5;
+          }
+
+          // 计算y坐标：优先显示在按钮下方，若超出视口则显示在上方
+          let y = rect.bottom + 5;
+          if (y + menuHeight > window.innerHeight - 10) {
+            y = rect.top - menuHeight - 5;
+          }
+
+          // 确保x和y坐标不会超出视口
+          x = Math.max(10, Math.min(x, window.innerWidth - menuWidth - 10));
+          y = Math.max(10, Math.min(y, window.innerHeight - menuHeight - 10));
+
           setMenuPosition({
-            x: rect.right - 160, // 菜单宽度约160px，显示在图标左侧
-            y: rect.bottom + 5
+            x: x,
+            y: y
           });
           setSelectedPost(post);
           setMenuVisible(true);
@@ -739,36 +759,55 @@ function Home({ isHomeRoute }) {
             left: `${menuPosition.x}px`,
             top: `${menuPosition.y}px`,
             background: '#fff',
-            borderRadius: '12px',
-            boxShadow: '0 8px 24px rgba(0,0,0,0.15)',
-            width: '140px',
+            borderRadius: '16px',
+            boxShadow: '0 8px 24px rgba(160, 64, 48, 0.15)',
+            width: '160px',
             zIndex: 2000,
-            border: '1px solid #f0f0f0'
+            border: '1px solid rgba(160, 64, 48, 0.1)',
+            // 添加transform以确保定位更准确
+            transform: 'translate3d(0, 0, 0)',
+            // 确保菜单不会超出视口
+            maxWidth: 'calc(100vw - 20px)',
+            maxHeight: 'calc(100vh - 20px)'
           }}
           onClick={(e) => e.stopPropagation()}
         >
           <div
             style={{
-              padding: '12px 16px',
+              padding: '14px 16px',
               fontSize: '15px',
-              color: '#333',
+              color: '#3E3A39',
               cursor: 'pointer',
-              borderBottom: '1px solid #f5f5f5',
-              transition: 'background-color 0.2s'
+              borderBottom: '1px solid rgba(160, 64, 48, 0.05)',
+              transition: 'all 0.2s ease',
+              borderRadius: '16px 16px 0 0'
             }}
             onClick={() => handleCardAction('edit', selectedPost)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(160, 64, 48, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             编辑
           </div>
           <div
             style={{
-              padding: '12px 16px',
+              padding: '14px 16px',
               fontSize: '15px',
-              color: '#ff4d4f',
+              color: '#A04030',
               cursor: 'pointer',
-              transition: 'background-color 0.2s'
+              transition: 'all 0.2s ease',
+              borderRadius: '0 0 16px 16px'
             }}
             onClick={() => handleCardAction('delete', selectedPost)}
+            onMouseEnter={(e) => {
+              e.currentTarget.style.backgroundColor = 'rgba(160, 64, 48, 0.05)';
+            }}
+            onMouseLeave={(e) => {
+              e.currentTarget.style.backgroundColor = 'transparent';
+            }}
           >
             删除
           </div>
