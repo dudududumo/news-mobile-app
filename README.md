@@ -402,8 +402,7 @@ news-mobile-app/
 
 | 方法 | 路径 | 功能 | 参数 | 返回 |
 |------|------|------|------|------|
-| GET | `/api/analytics/dashboard` | 获取仪表盘数据 | 无 | `{ totalPosts: Number, totalUsers: Number, totalComments: Number, todayPosts: Number }` |
-| GET | `/api/analytics/trends` | 获取趋势数据 | startDate: String (开始日期)<br>endDate: String (结束日期) | `{ dates: Array, posts: Array, users: Array }` |
+| POST | `/api/analytics/batch` | 批量接收埋点数据 | events: Array (埋点事件数组) | `{ success: Boolean, count: Number, totalReceived: Number }` |
 
 ### 接口设计规范
 
@@ -484,18 +483,9 @@ news-mobile-app/
 |-------|------|------|-------|------|
 | `event` | String | 事件名称 | 必填 | 索引 |
 | `user_id` | ObjectId | 用户ID | undefined | 索引 |
-| `page` | String | 页面名称 | undefined | 索引 |
-| `element` | String | 元素标识 | undefined | - |
-| `duration` | Number | 停留时长(ms) | undefined | - |
+| `timestamp` | Date | 事件发生时间 | 当前时间 | - |
 | `url` | String | 页面URL | undefined | - |
-| `referrer` | String | 来源URL | undefined | - |
-| `location` | String | 地理位置 | undefined | - |
-| `browser` | String | 浏览器类型 | undefined | - |
-| `os` | String | 操作系统 | undefined | - |
-| `device` | String | 设备类型 | undefined | - |
-| `screen_width` | Number | 屏幕宽度 | undefined | - |
-| `screen_height` | Number | 屏幕高度 | undefined | - |
-| `createdAt` | Date | 创建时间 | 自动生成 | 索引（降序） |
+| `metadata` | Mixed | 额外的事件数据 | undefined | - |
 
 ### 验证码记录模型（OtpRecord）
 
@@ -596,7 +586,7 @@ news-mobile-app/
 - **文档数据库**：使用MongoDB存储结构化数据
 - **数据模型**：基于Mongoose定义对象模型和关系
 - **索引优化**：为常用查询字段建立索引，提升查询性能
-- **数据分片**：按时间维度分片存储大量事件数据
+- **批量存储**：使用批量插入优化大量事件数据的存储性能
 
 ### 核心业务流程图
 
@@ -669,94 +659,8 @@ news-mobile-app/
 #### 埋点方案
 | 埋点名 | 说明 | 字段 | 存储 & 查看方案 |
 | --- | --- | --- | --- |
-| `user_login` | 用户登录事件 | `{ userId, deviceType, timestamp, loginMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看登录趋势和成功率 |
-| `user_register` | 用户注册事件 | `{ userId, deviceType, timestamp, registerMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看注册转化率 |
-| `post_view` | 文章浏览事件 | `{ userId, postId, timestamp, pageSource, timeSpent }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看热门文章和用户偏好 |
-| `post_like` | 文章点赞事件 | `{ userId, postId, timestamp, actionType }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过互动分析模块查看点赞趋势 |
-| `post_comment` | 文章评论事件 | `{ userId, postId, commentId, timestamp, commentLength }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论活跃度 |
-| `search_query` | 搜索查询事件 | `{ userId, queryString, timestamp, resultsCount }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过搜索分析模块查看热门搜索词 |
-| `page_view` | 页面浏览事件 | `{ userId, pageName, timestamp, referrer, duration }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过页面分析模块查看页面访问量和停留时间 |
-| `post_edit` | 文章编辑事件 | `{ userId, postId, timestamp, hasContentChange, hasImageChange }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看编辑活跃度和编辑行为 |
-| `post_delete` | 文章删除事件 | `{ userId, postId, timestamp, postType, postAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看删除行为和内容生命周期 |
-| `comment_delete` | 评论删除事件 | `{ userId, postId, commentId, timestamp, commentAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论删除行为和互动质量 |
-
-#### 高频事件处理
-
-##### 滚动事件优化
-
-- **节流处理**：使用`lodash.throttle`将滚动事件的触发频率限制为200ms一次，避免性能问题
-- **滚动位置记录**：使用Intersection Observer API监测滚动位置，实现内容懒加载
-- **滚动状态管理**：维护滚动状态机，避免重复触发相同状态的事件
-- **实现示例**：
-  ```javascript
-  // 前端实现滚动节流
-  import throttle from 'lodash.throttle';
-  
-  const handleScroll = throttle(() => {
-    const scrollTop = window.pageYOffset;
-    // 记录滚动位置和发送埋点
-    trackScrollEvent(scrollTop);
-  }, 200);
-  
-  window.addEventListener('scroll', handleScroll);
-  ```
-
-##### 曝光事件处理
-
-- **可视区域检测**：使用Intersection Observer API精确监测元素进入可视区域
-- **曝光去重**：使用Set数据结构存储已曝光元素ID，避免重复记录
-- **批量上报**：将曝光事件收集到数组，定时批量上报到后端
-- **实现示例**：
-  ```javascript
-  // 前端实现曝光检测
-  const exposedItems = new Set();
-  const exposureQueue = [];
-  
-  const observer = new IntersectionObserver((entries) => {
-    entries.forEach(entry => {
-      if (entry.isIntersecting) {
-        const itemId = entry.target.dataset.id;
-        if (!exposedItems.has(itemId)) {
-          exposedItems.add(itemId);
-          exposureQueue.push({
-            eventName: 'item_exposure',
-            itemId,
-            timestamp: Date.now(),
-            position: entry.target.getBoundingClientRect()
-          });
-        }
-      }
-    });
-  }, { threshold: 0.5 }); // 元素50%进入可视区域才触发
-  
-  // 批量上报
-  setInterval(() => {
-    if (exposureQueue.length > 0) {
-      sendBatchEvents([...exposureQueue]);
-      exposureQueue.length = 0;
-    }
-  }, 1000);
-  ```
-
-##### 长列表交互优化
-
-- **虚拟滚动**：实现虚拟列表，只渲染可视区域内的元素，减少DOM节点数量
-- **数据分页加载**：使用分页机制加载列表数据，避免一次性加载过多数据
-- **预加载**：滑动到列表底部前，预加载下一页数据，提升用户体验
-- **交互事件委托**：使用事件委托模式处理列表项的点击事件，减少事件监听器数量
-- **实现示例**：
-  ```javascript
-  // 前端实现虚拟列表核心逻辑
-  class VirtualList {
-    constructor(container, options) {
-      this.container = container;
-      this.items = options.items;
-      this.itemHeight = options.itemHeight;
-      this.visibleCount = Math.ceil(container.clientHeight / this.itemHeight);
-      
-      this.updateVisibleItems = throttle(this.updateVisibleItems.bind(this), 16);
-      container.addEventListener('scroll', this.updateVisibleItems);
-    }
+| `page_view` | 页面浏览事件 | `{ page_id, timestamp }` | 存储：后端MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
+| `comment_delete` | 评论删除事件 | `{ userId, postId, commentId, timestamp }` | 存储：后端MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
     
     updateVisibleItems() {
       const scrollTop = this.container.scrollTop;
