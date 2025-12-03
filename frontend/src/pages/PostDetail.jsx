@@ -1,9 +1,10 @@
 // Postdetail：
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { NavBar, ImageViewer, Skeleton, Toast, ActionSheet, TextArea, Button, List } from 'antd-mobile';
-import { HeartOutline, MessageOutline, EyeOutline, CompassOutline, HeartFill, SendOutline } from 'antd-mobile-icons';
+import { NavBar, ImageViewer, Skeleton, Toast, ActionSheet, TextArea, Button, List, Modal } from 'antd-mobile';
+import { HeartOutline, MessageOutline, EyeOutline, CompassOutline, HeartFill, SendOutline, DeleteOutline } from 'antd-mobile-icons';
 import service, { getToken } from '../services/axios'; // 确保 getToken 被引入
+import analytics from '../services/analytics';
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
@@ -354,6 +355,51 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]); // 当id变化时重新执行
 
+  // 删除评论功能
+  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
+  const [commentToDelete, setCommentToDelete] = useState(null);
+
+  const handleDeleteComment = (commentId) => {
+    setCommentToDelete(commentId);
+    setShowDeleteConfirm(true);
+  };
+
+  const confirmDeleteComment = async () => {
+    if (!commentToDelete) return;
+
+    try {
+      const res = await service.delete(`/posts/${id}/comments/${commentToDelete}`);
+      
+      // 更新评论列表
+      setComments(prevComments => 
+        prevComments.filter(comment => comment._id !== commentToDelete)
+      );
+      
+      // 更新帖子的评论数
+      setPost(prevPost => ({
+        ...prevPost,
+        commentsCount: res.commentsCount || prevPost.commentsCount - 1
+      }));
+      
+      // 记录埋点
+      analytics.track('comment_delete', {
+        postId: id,
+        commentId: commentToDelete
+      });
+      
+      Toast.show({ content: '评论已删除', icon: 'success' });
+    } catch (error) {
+      console.error('删除评论失败:', error);
+      Toast.show({ 
+        content: error.response?.data?.message || '删除评论失败', 
+        icon: 'fail' 
+      });
+    } finally {
+      setShowDeleteConfirm(false);
+      setCommentToDelete(null);
+    }
+  };
+
   //加载评论列表并在需要时滚动到评论区 (不变)
   useEffect(() => {
     if (post?._id) {
@@ -619,13 +665,20 @@ const PostDetail = ({ isAuthenticated }) => {
                     <List.Item
                       key={comment._id || index}
                       arrow={false}
-                      style={{ backgroundColor: 'transparent' }} // 确保每个评论项背景透明
+                      style={{ backgroundColor: 'transparent', padding: '12px 0' }} // 确保每个评论项背景透明
                       description={
                         <div style={styles.commentContent}>
                           {comment.content}
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 8 }}>
+                          <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
                             {/*修复1:评论区日期保持相对时间*/}
-                            {dayjs(comment.createdAt).fromNow()}
+                            <span>{dayjs(comment.createdAt).fromNow()}</span>
+                            {/* 只有评论作者可见删除按钮 */}
+                            {currentUserId && comment.user?._id === currentUserId && (
+                              <DeleteOutline
+                                onClick={() => handleDeleteComment(comment._id)}
+                                style={{ cursor: 'pointer', fontSize: '14px', color: '#ff4d4f' }}
+                              />
+                            )}
                           </div>
                         </div>
                       }
@@ -657,6 +710,21 @@ const PostDetail = ({ isAuthenticated }) => {
         onClose={() => setShowLoginAction(false)}
         onAction={handleLoginAction}
         extra={'查看文章详情和互动需要登录'}
+      />
+      
+      {/* 评论删除确认模态框 */}
+      <Modal
+        visible={showDeleteConfirm}
+        title="确认删除"
+        content="确定要删除这条评论吗？"
+        confirmText="删除"
+        cancelText="取消"
+        confirmStyle={{ color: '#ff4d4f' }}
+        onConfirm={confirmDeleteComment}
+        onCancel={() => {
+          setShowDeleteConfirm(false);
+          setCommentToDelete(null);
+        }}
       />
     </div>
   );

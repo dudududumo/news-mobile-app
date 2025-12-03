@@ -378,4 +378,40 @@ router.put('/:id', authMiddleware, async (req, res) => {
   }
 });
 
+// --- 15. 删除评论 ---  
+router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
+  const userId = req.user?.userId;
+  if (!userId) return res.status(401).json({ message: '请登录后删除评论' });
+
+  try {
+    const { id, commentId } = req.params;
+    
+    if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: '无效的文章ID' });
+    if (!mongoose.Types.ObjectId.isValid(commentId)) return res.status(400).json({ message: '无效的评论ID' });
+
+    // 检查帖子是否存在
+    const post = await Post.findById(id);
+    if (!post) return res.status(404).json({ message: '帖子不存在' });
+    
+    // 找到评论
+    const commentIndex = post.comments.findIndex(c => c._id.toString() === commentId);
+    if (commentIndex === -1) return res.status(404).json({ message: '评论不存在' });
+    
+    // 确保只能删除自己的评论
+    if (post.comments[commentIndex].user.toString() !== userId) {
+      return res.status(403).json({ message: '无权删除此评论' });
+    }
+
+    // 删除评论
+    post.comments.splice(commentIndex, 1);
+    post.commentsCount = post.comments.length;
+    
+    await post.save();
+    res.json({ message: '评论删除成功', commentsCount: post.commentsCount });
+  } catch (error) {
+    console.error('删除评论失败:', error);
+    res.status(500).json({ message: '删除失败', error: error.message });
+  }
+});
+
 module.exports = router;
