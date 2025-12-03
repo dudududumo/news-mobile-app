@@ -1,7 +1,7 @@
 // Postdetail：
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
-import { NavBar, ImageViewer, Skeleton, Toast, ActionSheet, TextArea, Button, List, Modal } from 'antd-mobile';
+import { NavBar, ImageViewer, Skeleton, Toast, ActionSheet, TextArea, Button, Modal } from 'antd-mobile';
 import { HeartOutline, MessageOutline, EyeOutline, CompassOutline, HeartFill, SendOutline, DeleteOutline } from 'antd-mobile-icons';
 import service, { getToken } from '../services/axios'; // 确保 getToken 被引入
 import analytics from '../services/analytics';
@@ -268,7 +268,7 @@ const PostDetail = ({ isAuthenticated }) => {
 
   // ⭐️ 新增：获取当前用户信息
   const [userInfo, setUserInfo] = useState(null);
-  
+
   // 从localStorage获取用户信息
   useEffect(() => {
     const savedUserInfo = localStorage.getItem('userInfo');
@@ -281,7 +281,7 @@ const PostDetail = ({ isAuthenticated }) => {
       }
     }
   }, []);
-  
+
   const currentUserId = userInfo?._id;
 
 
@@ -418,31 +418,31 @@ const PostDetail = ({ isAuthenticated }) => {
     try {
       Toast.show({ content: '删除中...', icon: 'loading', duration: 0 });
       const res = await service.delete(`/posts/${id}/comments/${commentToDelete}`);
-      
+
       // 更新评论列表
-      setComments(prevComments => 
+      setComments(prevComments =>
         prevComments.filter(comment => comment._id !== commentToDelete)
       );
-      
+
       // 更新帖子的评论数
       setPost(prevPost => ({
         ...prevPost,
         commentsCount: res.commentsCount || prevPost.commentsCount - 1
       }));
-      
+
       // 记录埋点
       analytics.track('comment_delete', {
         userId: currentUserId,
         postId: id,
         commentId: commentToDelete
       });
-      
+
       Toast.show({ content: '删除成功', icon: 'success' });
     } catch (error) {
       console.error('删除评论失败:', error);
-      Toast.show({ 
-        content: error.response?.data?.message || '删除评论失败', 
-        icon: 'fail' 
+      Toast.show({
+        content: error.response?.data?.message || '删除评论失败',
+        icon: 'fail'
       });
     } finally {
       setCommentToDelete(null);
@@ -711,8 +711,8 @@ const PostDetail = ({ isAuthenticated }) => {
               ) : (
                 <div style={{ backgroundColor: 'transparent' }}>
                   {comments.map((comment, index) => (
-                    <div key={comment._id || index} style={{ 
-                      backgroundColor: 'transparent', 
+                    <div key={comment._id || index} style={{
+                      backgroundColor: 'transparent',
                       padding: '12px 0',
                       display: 'flex',
                       flexDirection: 'column'
@@ -727,35 +727,35 @@ const PostDetail = ({ isAuthenticated }) => {
                         <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
                           {comment.user?.nickname || '匿名用户'}
                           {/* 添加"我的"标识 */}
-                          {isAuthenticated && userInfo && comment.user && 
-                           (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
-                            <span style={{ fontSize: 11, color: '#999', marginLeft: '4px' }}>(我的)</span>
-                          )}
+                          {isAuthenticated && userInfo && comment.user &&
+                            (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
+                              <span style={{ fontSize: 11, color: '#999', marginLeft: '4px' }}>(我的)</span>
+                            )}
                         </span>
                       </div>
                       {/* 评论内容 */}
-                      <div style={{ 
-                        ...styles.commentContent, 
+                      <div style={{
+                        ...styles.commentContent,
                         marginLeft: '36px', // 右移评论内容，与头像对齐
-                        paddingLeft: '8px' // 额外内边距使内容更靠右
+
                       }}>
                         {comment.content}
                         <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                           {/*修复1:评论区日期保持相对时间*/}
                           <span style={{ marginRight: '12px' }}>{dayjs(comment.createdAt).fromNow()}</span>
                           {/* 只有评论作者可见删除按钮 */}
-                          {isAuthenticated && userInfo && comment.user && 
-                           (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
-                            <DeleteOutline
-                              onClick={() => handleDeleteComment(comment._id)}
-                              style={{ 
-                                cursor: 'pointer', 
-                                fontSize: '14px', 
-                                color: BRAND_COLOR, // 使用品牌主题色
-                                marginLeft: 'auto' // 保持删除按钮在右侧
-                              }}
-                            />
-                          )}
+                          {isAuthenticated && userInfo && comment.user &&
+                            (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
+                              <DeleteOutline
+                                onClick={() => handleDeleteComment(comment._id)}
+                                style={{
+                                  cursor: 'pointer',
+                                  fontSize: '14px',
+                                  color: BRAND_COLOR, // 使用品牌主题色
+                                  marginLeft: 'auto' // 保持删除按钮在右侧
+                                }}
+                              />
+                            )}
                         </div>
                       </div>
                     </div>
@@ -776,7 +776,7 @@ const PostDetail = ({ isAuthenticated }) => {
         onAction={handleLoginAction}
         extra={'查看文章详情和互动需要登录'}
       />
-      
+
       {/* 评论删除确认模态框 - 使用与Home页面一致的样式 */}
     </div>
   );
