@@ -370,18 +370,53 @@ const PostDetail = ({ isAuthenticated }) => {
   }, [id]); // 当id变化时重新执行
 
   // 删除评论功能
-  const [showDeleteConfirm, setShowDeleteConfirm] = useState(false);
   const [commentToDelete, setCommentToDelete] = useState(null);
+
+  // 显示主题化弹窗（与Home页面一致的样式）
+  const showThemeModal = (title, content, onConfirm, confirmText = '确定') => {
+    const modal = Modal.show({
+      content: (
+        <div className="login-modal">
+          <h3 className="login-modal-title">{title}</h3>
+          <div className="login-modal-content">
+            {content}
+          </div>
+          <div className="login-modal-button-group">
+            <button
+              className="login-modal-button login-modal-cancel"
+              onClick={() => modal.close()}
+            >
+              取消
+            </button>
+            <button
+              className="login-modal-button login-modal-confirm"
+              onClick={() => { modal.close(); onConfirm(); }}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      ),
+      closeOnMaskClick: true,
+      modalClassName: 'custom-modal-reset',
+      bodyStyle: {
+        padding: 0,
+        backgroundColor: 'transparent',
+        width: '100%'
+      }
+    });
+  };
 
   const handleDeleteComment = (commentId) => {
     setCommentToDelete(commentId);
-    setShowDeleteConfirm(true);
+    showThemeModal('确认删除', '确定要删除这条评论吗？', confirmDeleteComment, '删除');
   };
 
   const confirmDeleteComment = async () => {
     if (!commentToDelete) return;
 
     try {
+      Toast.show({ content: '删除中...', icon: 'loading', duration: 0 });
       const res = await service.delete(`/posts/${id}/comments/${commentToDelete}`);
       
       // 更新评论列表
@@ -397,11 +432,12 @@ const PostDetail = ({ isAuthenticated }) => {
       
       // 记录埋点
       analytics.track('comment_delete', {
+        userId: currentUserId,
         postId: id,
         commentId: commentToDelete
       });
       
-      Toast.show({ content: '评论已删除', icon: 'success' });
+      Toast.show({ content: '删除成功', icon: 'success' });
     } catch (error) {
       console.error('删除评论失败:', error);
       Toast.show({ 
@@ -409,7 +445,6 @@ const PostDetail = ({ isAuthenticated }) => {
         icon: 'fail' 
       });
     } finally {
-      setShowDeleteConfirm(false);
       setCommentToDelete(null);
     }
   };
@@ -674,7 +709,7 @@ const PostDetail = ({ isAuthenticated }) => {
                   暂无评论，快来抢沙发吧!
                 </div>
               ) : (
-                <List>
+                <List style={{ backgroundColor: 'transparent' }}>
                   {comments.map((comment, index) => (
                     <List.Item
                       key={comment._id || index}
@@ -732,20 +767,7 @@ const PostDetail = ({ isAuthenticated }) => {
         extra={'查看文章详情和互动需要登录'}
       />
       
-      {/* 评论删除确认模态框 */}
-      <Modal
-        visible={showDeleteConfirm}
-        title="确认删除"
-        content="确定要删除这条评论吗？"
-        confirmText="删除"
-        cancelText="取消"
-        confirmStyle={{ color: '#ff4d4f' }}
-        onConfirm={confirmDeleteComment}
-        onCancel={() => {
-          setShowDeleteConfirm(false);
-          setCommentToDelete(null);
-        }}
-      />
+      {/* 评论删除确认模态框 - 使用与Home页面一致的样式 */}
     </div>
   );
 };
