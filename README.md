@@ -91,6 +91,8 @@
 | **话题挑战跳转** | 支持从相关文章或标签页跳转至创建页面，并自动填充话题内容；提供创作引导功能 | 无特定API，导航参数传递 |
 | **OpenAI集成** | 后端配置OpenAI客户端，使用API Key进行认证；实现请求超时和错误处理机制；支持模型参数配置 | 无特定API，后端服务调用 |
 | **文件存储管理** | 后端使用multer配置文件上传路径和命名规则；支持文件类型验证（仅图片格式）；实现静态文件服务提供访问 | GET `/uploads/{filename}` |
+| **文章编辑** | 实现文章内容和图片的修改功能；支持富文本编辑和多图上传；编辑页面自动填充原有内容；实现保存和取消操作；添加操作确认和错误提示 | PUT `/api/posts/:id` |
+| **文章删除** | 实现文章的删除功能；点击三点按钮打开操作菜单，选择删除后显示确认模态框；确认后调用API删除文章并更新列表；添加操作结果提示 | DELETE `/api/posts/:id` |
 
 ### Feed流功能实现
 
@@ -121,6 +123,7 @@
 | **点赞状态缓存同步** | 实现用户ID绑定的缓存机制（`updateLikedStateCache`/`getLikedStateFromCache`）；在Feed流和详情页间保持点赞状态一致性；登录/登出状态切换时自动更新显示 | 无特定API，使用 `sessionStorage` 实现 |
 | **阅读数展示** | 文章详情页显示阅读数量统计；与点赞数和评论数一起构成内容互动数据面板 | 无特定API，文章详情接口返回阅读数 |
 | **时间格式化显示** | 文章发布时间使用 `YYYY-MM-DD` 格式，评论时间使用相对时间（如"3分钟前"）；使用 `dayjs` 库进行时间处理 | 无特定API，前端 `dayjs` 库实现 |
+| **评论删除** | 实现评论的删除功能；评论右下角显示删除按钮（仅作者可见）；点击后显示确认模态框；确认后调用API删除评论并更新列表；添加操作结果提示 | DELETE `/api/posts/:id/comments/:commentId` |
 
 ## 技术栈
 
@@ -650,6 +653,9 @@ news-mobile-app/
 | `post_comment` | 文章评论事件 | `{ userId, postId, commentId, timestamp, commentLength }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论活跃度 |
 | `search_query` | 搜索查询事件 | `{ userId, queryString, timestamp, resultsCount }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过搜索分析模块查看热门搜索词 |
 | `page_view` | 页面浏览事件 | `{ userId, pageName, timestamp, referrer, duration }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过页面分析模块查看页面访问量和停留时间 |
+| `post_edit` | 文章编辑事件 | `{ userId, postId, timestamp, hasContentChange, hasImageChange }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看编辑活跃度和编辑行为 |
+| `post_delete` | 文章删除事件 | `{ userId, postId, timestamp, postType, postAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看删除行为和内容生命周期 |
+| `comment_delete` | 评论删除事件 | `{ userId, postId, commentId, timestamp, commentAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论删除行为和互动质量 |
 
 #### 高频事件处理
 
