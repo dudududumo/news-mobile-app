@@ -1,13 +1,19 @@
+/* src/index.css */
 :root {
   /* --- 色彩定义 --- */
+  /* 陶土红：更深沉一点，显得不那么艳俗 */
   --c-terra: #A04030;
+  /* 背景色：暖灰色，衬托白色卡片 */
   --c-bg: #EFEBE9;
+  /* 文字色：深褐灰 */
   --c-text: #3E3A39;
 
   /* --- 字体变量 --- */
+  /* 优先使用衬线体，营造精致感 */
   --font-serif: "Times New Roman", "Songti SC", "SimSun", serif;
   --font-sans: "Helvetica Neue", sans-serif;
 
+  /* --- Ant Design Mobile 覆盖 --- */
   /* --- Ant Design Mobile 变量覆盖 --- */
   --adm-color-primary: var(--c-terra);
   --adm-font-family: var(--font-sans);
@@ -17,6 +23,7 @@ body {
   margin: 0;
   background-color: var(--c-bg);
   color: var(--c-text);
+  /* 增加背景纹理感（可选） */
   background-image: radial-gradient(#D7CCC8 1px, transparent 1px);
   background-size: 20px 20px;
   font-family: var(--font-sans);
@@ -26,6 +33,7 @@ body {
 /* 通用：精致输入框 */
 .refined-input {
   --adm-input-font-size: 16px;
+  /* 字号调小，显精致 */
   padding: 8px 0;
   border-bottom: 1px solid #E0E0E0;
   transition: all 0.3s ease;
@@ -33,11 +41,6 @@ body {
 
 .refined-input:focus-within {
   border-bottom: 1px solid var(--c-terra);
-}
-
-.adm-input-element::placeholder {
-  color: #BCAAA4;
-  font-size: 14px;
 }
 
 /* 🔥🔥🔥 弹窗样式核心修复 🔥🔥🔥 */
@@ -149,38 +152,4 @@ body {
   overflow: visible !important;
   /* 关键：允许子元素阴影溢出 */
   border-radius: 16px !important;
-}
-
-/* 🔥🔥🔥 自定义滚动条样式 🔥🔥🔥 */
-/* WebKit浏览器 (Chrome, Safari, Edge) */
-::-webkit-scrollbar {
-  width: 6px;
-  height: 6px;
-}
-
-::-webkit-scrollbar-track {
-  background: #f5f5f5;
-  border-radius: 3px;
-}
-
-::-webkit-scrollbar-thumb {
-  background: #A04030; /* 陶土色主题 */
-  border-radius: 3px;
-  transition: background 0.3s ease;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  background: #8B3626; /* 稍微深一点的陶土色 */
-}
-
-/* Firefox */
-html {
-  scrollbar-width: thin;
-  scrollbar-color: #A04030 #f5f5f5;
-}
-
-/* 为特定元素设置滚动条样式 */
-.scroll-container {
-  scrollbar-width: thin;
-  scrollbar-color: #A04030 #f5f5f5;
 }

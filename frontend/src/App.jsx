@@ -38,7 +38,7 @@ function AppContent() {
   };
 
   return (
-    <div className="app-container">
+    <div className="App">
       <Routes>
         <Route path="/login" element={<Login updateUserInfo={updateUserInfo} />} />
         <Route path="/create" element={
