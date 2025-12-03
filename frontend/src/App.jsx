@@ -21,12 +21,12 @@ function AppContent() {
   const isHomeRoute = location.pathname === '/';
   const token = getToken();
   const isAuthenticated = token && token.token;
-  
+
   // 将用户信息从 localStorage 提升为状态
   const [currentUser, setCurrentUser] = useState(() => {
     return localStorage.getItem('userInfo') ? JSON.parse(localStorage.getItem('userInfo')) : null;
   });
-  
+
   // 创建一个统一更新用户信息的函数
   const updateUserInfo = (newUser) => {
     if (newUser === null) {
@@ -38,7 +38,7 @@ function AppContent() {
   };
 
   return (
-    <div className="App">
+    <div className="app-container">
       <Routes>
         <Route path="/login" element={<Login updateUserInfo={updateUserInfo} />} />
         <Route path="/create" element={

@@ -150,3 +150,37 @@ body {
   /* 关键：允许子元素阴影溢出 */
   border-radius: 16px !important;
 }
+
+/* 🔥🔥🔥 自定义滚动条样式 🔥🔥🔥 */
+/* WebKit浏览器 (Chrome, Safari, Edge) */
+::-webkit-scrollbar {
+  width: 6px;
+  height: 6px;
+}
+
+::-webkit-scrollbar-track {
+  background: #f5f5f5;
+  border-radius: 3px;
+}
+
+::-webkit-scrollbar-thumb {
+  background: #A04030; /* 陶土色主题 */
+  border-radius: 3px;
+  transition: background 0.3s ease;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  background: #8B3626; /* 稍微深一点的陶土色 */
+}
+
+/* Firefox */
+html {
+  scrollbar-width: thin;
+  scrollbar-color: #A04030 #f5f5f5;
+}
+
+/* 为特定元素设置滚动条样式 */
+.scroll-container {
+  scrollbar-width: thin;
+  scrollbar-color: #A04030 #f5f5f5;
+}
