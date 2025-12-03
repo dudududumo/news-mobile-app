@@ -690,7 +690,7 @@ const PostDetail = ({ isAuthenticated }) => {
                   value={commentContent}
                   onChange={setCommentContent}
                   autoSize
-                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px', fontSize: '12px' }}
+                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px', fontSize: '11px' }}
                   disabled={!isAuthenticated}
                 />
                 <Button
