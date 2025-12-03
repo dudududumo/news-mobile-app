@@ -709,12 +709,17 @@ const PostDetail = ({ isAuthenticated }) => {
                   暂无评论，快来抢沙发吧!
                 </div>
               ) : (
-                <List style={{ backgroundColor: 'transparent' }}>
+                <List 
+                  style={{ backgroundColor: 'transparent' }}
+                  contentContainerStyle={{ backgroundColor: 'transparent' }}
+                  renderItemContent={() => <div style={{ backgroundColor: 'transparent' }} />}
+                >
                   {comments.map((comment, index) => (
                     <List.Item
                       key={comment._id || index}
                       arrow={false}
-                      style={{ backgroundColor: 'transparent', padding: '12px 0' }} // 确保每个评论项背景透明
+                      style={{ backgroundColor: 'transparent', padding: '12px 0' }}
+                      contentStyle={{ backgroundColor: 'transparent' }} // 确保内容区域背景透明
                       description={
                         <div style={styles.commentContent}>
                           {comment.content}
@@ -733,7 +738,7 @@ const PostDetail = ({ isAuthenticated }) => {
                         </div>
                       }
                     >
-                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent' }}>
+                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent', width: '100%' }}>
                         <img
                           src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
                           alt="avatar"
