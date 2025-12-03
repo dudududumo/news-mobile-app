@@ -690,7 +690,7 @@ const PostDetail = ({ isAuthenticated }) => {
                   value={commentContent}
                   onChange={setCommentContent}
                   autoSize
-                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px', fontSize: '13px' }}
+                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px', fontSize: '12px' }}
                   disabled={!isAuthenticated}
                 />
                 <Button
@@ -740,15 +740,20 @@ const PostDetail = ({ isAuthenticated }) => {
                         paddingLeft: '8px' // 额外内边距使内容更靠右
                       }}>
                         {comment.content}
-                        <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'flex-start', alignItems: 'center' }}>
                           {/*修复1:评论区日期保持相对时间*/}
-                          <span>{dayjs(comment.createdAt).fromNow()}</span>
+                          <span style={{ marginRight: '12px' }}>{dayjs(comment.createdAt).fromNow()}</span>
                           {/* 只有评论作者可见删除按钮 */}
                           {isAuthenticated && userInfo && comment.user && 
                            (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
                             <DeleteOutline
                               onClick={() => handleDeleteComment(comment._id)}
-                              style={{ cursor: 'pointer', fontSize: '14px', color: '#ff4d4f' }}
+                              style={{ 
+                                cursor: 'pointer', 
+                                fontSize: '14px', 
+                                color: BRAND_COLOR, // 使用品牌主题色
+                                marginLeft: 'auto' // 保持删除按钮在右侧
+                              }}
                             />
                           )}
                         </div>
