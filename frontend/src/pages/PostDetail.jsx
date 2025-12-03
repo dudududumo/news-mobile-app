@@ -687,7 +687,8 @@ const PostDetail = ({ isAuthenticated }) => {
                             {/*修复1:评论区日期保持相对时间*/}
                             <span>{dayjs(comment.createdAt).fromNow()}</span>
                             {/* 只有评论作者可见删除按钮 */}
-                            {currentUserId && comment.user?._id === currentUserId && (
+                            {isAuthenticated && userInfo && comment.user && 
+                             (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
                               <DeleteOutline
                                 onClick={() => handleDeleteComment(comment._id)}
                                 style={{ cursor: 'pointer', fontSize: '14px', color: '#ff4d4f' }}
@@ -706,7 +707,8 @@ const PostDetail = ({ isAuthenticated }) => {
                         <span style={{ fontSize: 13, fontWeight: '500', color: '#333' }}>
                           {comment.user?.nickname || '匿名用户'}
                           {/* 添加"我的"标识 */}
-                          {currentUserId && comment.user?._id === currentUserId && (
+                          {isAuthenticated && userInfo && comment.user && 
+                           (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
                             <span style={{ fontSize: 11, color: '#999', marginLeft: '4px' }}>(我的)</span>
                           )}
                         </span>
