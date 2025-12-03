@@ -690,7 +690,7 @@ const PostDetail = ({ isAuthenticated }) => {
                   value={commentContent}
                   onChange={setCommentContent}
                   autoSize
-                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px' }}
+                  style={{ flex: 1, border: '1px solid#ddd', borderRadius: '8px', padding: '6px 10px', minHeight: '40px', fontSize: '13px' }}
                   disabled={!isAuthenticated}
                 />
                 <Button
@@ -709,36 +709,16 @@ const PostDetail = ({ isAuthenticated }) => {
                   暂无评论，快来抢沙发吧!
                 </div>
               ) : (
-                <List 
-                  style={{ backgroundColor: 'transparent' }}
-                  contentContainerStyle={{ backgroundColor: 'transparent' }}
-                  renderItemContent={() => <div style={{ backgroundColor: 'transparent' }} />}
-                >
+                <div style={{ backgroundColor: 'transparent' }}>
                   {comments.map((comment, index) => (
-                    <List.Item
-                      key={comment._id || index}
-                      arrow={false}
-                      style={{ backgroundColor: 'transparent', padding: '12px 0' }}
-                      contentStyle={{ backgroundColor: 'transparent' }} // 确保内容区域背景透明
-                      description={
-                        <div style={styles.commentContent}>
-                          {comment.content}
-                          <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
-                            {/*修复1:评论区日期保持相对时间*/}
-                            <span>{dayjs(comment.createdAt).fromNow()}</span>
-                            {/* 只有评论作者可见删除按钮 */}
-                            {isAuthenticated && userInfo && comment.user && 
-                             (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
-                              <DeleteOutline
-                                onClick={() => handleDeleteComment(comment._id)}
-                                style={{ cursor: 'pointer', fontSize: '14px', color: '#ff4d4f' }}
-                              />
-                            )}
-                          </div>
-                        </div>
-                      }
-                    >
-                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent', width: '100%' }}>
+                    <div key={comment._id || index} style={{ 
+                      backgroundColor: 'transparent', 
+                      padding: '12px 0',
+                      display: 'flex',
+                      flexDirection: 'column'
+                    }}>
+                      {/* 评论作者信息 */}
+                      <div style={{ display: 'flex', alignItems: 'center', paddingLeft: 0, backgroundColor: 'transparent' }}>
                         <img
                           src={comment.user?.avatar || 'https://api.dicebear.com/7.x/miniavs/svg?seed=0'}
                           alt="avatar"
@@ -753,9 +733,29 @@ const PostDetail = ({ isAuthenticated }) => {
                           )}
                         </span>
                       </div>
-                    </List.Item>
+                      {/* 评论内容 */}
+                      <div style={{ 
+                        ...styles.commentContent, 
+                        marginLeft: '36px', // 右移评论内容，与头像对齐
+                        paddingLeft: '8px' // 额外内边距使内容更靠右
+                      }}>
+                        {comment.content}
+                        <div style={{ fontSize: 11, color: '#999', marginTop: 8, display: 'flex', justifyContent: 'space-between', alignItems: 'center' }}>
+                          {/*修复1:评论区日期保持相对时间*/}
+                          <span>{dayjs(comment.createdAt).fromNow()}</span>
+                          {/* 只有评论作者可见删除按钮 */}
+                          {isAuthenticated && userInfo && comment.user && 
+                           (String(userInfo._id || userInfo.id) === String(comment.user._id || comment.user.id)) && (
+                            <DeleteOutline
+                              onClick={() => handleDeleteComment(comment._id)}
+                              style={{ cursor: 'pointer', fontSize: '14px', color: '#ff4d4f' }}
+                            />
+                          )}
+                        </div>
+                      </div>
+                    </div>
                   ))}
-                </List>
+                </div>
               )}
             </div>
           </>
