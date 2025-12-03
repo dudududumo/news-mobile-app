@@ -468,6 +468,7 @@ news-mobile-app/
 | `commentsCount` | Number | 评论数量 | 0 | - |
 | `status` | String | 状态（published/draft） | "published" | - |
 | `createdAt` | Date | 创建时间 | 自动生成 | 索引（降序） |
+| `editAt` | Date | 编辑时间 | undefined | - |
 
 ### 评论子文档结构
 
@@ -477,15 +478,37 @@ news-mobile-app/
 | `content` | String | 评论内容 | 必填 |
 | `createdAt` | Date | 创建时间 | 自动生成 |
 
-### 验证码记录模型
+### Analytics模型
 
-| 字段名 | 类型 | 描述 | 默认值 |
-|-------|------|------|-------|
-| `phone` | String | 手机号 | 必填 |
-| `code` | String | 验证码 | 必填 |
-| `ip` | String | 请求IP | 必填 |
-| `attempts` | Number | 尝试次数 | 0 |
-| `expiresAt` | Date | 过期时间 | 创建时间+5分钟 |
+| 字段名 | 类型 | 描述 | 默认值 | 索引 |
+|-------|------|------|-------|------|
+| `event` | String | 事件名称 | 必填 | 索引 |
+| `user_id` | ObjectId | 用户ID | undefined | 索引 |
+| `page` | String | 页面名称 | undefined | 索引 |
+| `element` | String | 元素标识 | undefined | - |
+| `duration` | Number | 停留时长(ms) | undefined | - |
+| `url` | String | 页面URL | undefined | - |
+| `referrer` | String | 来源URL | undefined | - |
+| `location` | String | 地理位置 | undefined | - |
+| `browser` | String | 浏览器类型 | undefined | - |
+| `os` | String | 操作系统 | undefined | - |
+| `device` | String | 设备类型 | undefined | - |
+| `screen_width` | Number | 屏幕宽度 | undefined | - |
+| `screen_height` | Number | 屏幕高度 | undefined | - |
+| `createdAt` | Date | 创建时间 | 自动生成 | 索引（降序） |
+
+### 验证码记录模型（OtpRecord）
+
+| 字段名 | 类型 | 描述 | 默认值 | 索引 |
+|-------|------|------|-------|------|
+| `phone` | String | 手机号 | 必填 | 唯一索引 |
+| `code` | String | 验证码 | 必填 | - |
+| `expiresAt` | Number | 过期时间戳 | 创建时间+5分钟 | - |
+| `attempts` | Number | 尝试次数 | 0 | - |
+| `lockedUntil` | Number | 锁定时间戳 | null | - |
+| `lastRequestTime` | Number | 最后请求时间戳 | 自动生成 | - |
+| `createdAt` | Date | 创建时间 | 自动生成 | - |
+| `updatedAt` | Date | 更新时间 | 自动生成 | - |
 
 ## 开发说明
 
