@@ -654,56 +654,109 @@ news-mobile-app/
 - **性能基准测试**：建立性能基准线，定期进行自动化性能测试
 - **监控工具集成**：推荐集成Sentry、Google Analytics等工具进行全面监控
 
-### 埋点功能
-
-#### 概述
-埋点功能用于收集用户行为数据，帮助分析用户使用习惯和优化产品体验。项目采用前后端分离的埋点方案，前端负责采集和批量发送数据，后端负责接收和存储数据。
+### 埋点设计
 
 #### 埋点方案
-
 | 埋点名 | 说明 | 字段 | 存储 & 查看方案 |
 | --- | --- | --- | --- |
-| `page_view` | 页面浏览事件 | `{ event, timestamp, url, page_id }` | 存储：MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
-| `comment_delete` | 评论删除事件 | `{ event, timestamp, url, post_id, comment_id }` | 存储：MongoDB集合`analytics`<br>查看：通过数据库直接查询 |
+| `user_login` | 用户登录事件 | `{ userId, deviceType, timestamp, loginMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看登录趋势和成功率 |
+| `user_register` | 用户注册事件 | `{ userId, deviceType, timestamp, registerMethod, isSuccess }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过管理后台的数据分析模块查看注册转化率 |
+| `post_view` | 文章浏览事件 | `{ userId, postId, timestamp, pageSource, timeSpent }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看热门文章和用户偏好 |
+| `post_like` | 文章点赞事件 | `{ userId, postId, timestamp, actionType }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过互动分析模块查看点赞趋势 |
+| `post_comment` | 文章评论事件 | `{ userId, postId, commentId, timestamp, commentLength }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论活跃度 |
+| `page_view` | 页面浏览事件 | `{ userId, pageName, timestamp, referrer, duration }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过页面分析模块查看页面访问量和停留时间 |
+| `post_edit` | 文章编辑事件 | `{ userId, postId, timestamp, hasContentChange, hasImageChange }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看编辑活跃度和编辑行为 |
+| `post_delete` | 文章删除事件 | `{ userId, postId, timestamp, postType, postAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过内容分析模块查看删除行为和内容生命周期 |
+| `comment_delete` | 评论删除事件 | `{ userId, postId, commentId, timestamp, commentAge }` | 存储：后端MongoDB集合`analytics_events`，按天分片<br>查看：通过评论分析模块查看评论删除行为和互动质量 |
 
-#### 实现细节
+#### 高频事件处理
 
-**前端实现**：`frontend/src/services/analytics.js`
-- 实现了`AnalyticsService`类，提供`track()`方法进行埋点采集
-- 支持批量发送机制：每10条事件或每5秒自动发送一次
-- 使用方式：
+##### 滚动事件优化
+
+- **节流处理**：使用`lodash.throttle`将滚动事件的触发频率限制为200ms一次，避免性能问题
+- **滚动位置记录**：使用Intersection Observer API监测滚动位置，实现内容懒加载
+- **滚动状态管理**：维护滚动状态机，避免重复触发相同状态的事件
+- **实现示例**：
   ```javascript
-  import analytics from '../services/analytics';
-  analytics.track('page_view', { page_id: 'home_feed' });
+  // 前端实现滚动节流
+  import throttle from 'lodash.throttle';
+
+  const handleScroll = throttle(() => {
+    const scrollTop = window.pageYOffset;
+    // 记录滚动位置和发送埋点
+    trackScrollEvent(scrollTop);
+  }, 200);
+
+  window.addEventListener('scroll', handleScroll);
   ```
 
-**后端实现**：
-- **数据模型**：`backend/src/models/Analytics.js`
+##### 曝光事件处理
+
+- **可视区域检测**：使用Intersection Observer API精确监测元素进入可视区域
+- **曝光去重**：使用Set数据结构存储已曝光元素ID，避免重复记录
+- **批量上报**：将曝光事件收集到数组，定时批量上报到后端
+- **实现示例**：
   ```javascript
-  const analyticsSchema = new mongoose.Schema({
-    event: { type: String, required: true, index: true },
-    user_id: { type: mongoose.Schema.Types.ObjectId, ref: 'User' },
-    timestamp: { type: Date, default: Date.now },
-    url: String,
-    metadata: { type: mongoose.Schema.Types.Mixed }
-  });
+  // 前端实现曝光检测
+  const exposedItems = new Set();
+  const exposureQueue = [];
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        const itemId = entry.target.dataset.id;
+        if (!exposedItems.has(itemId)) {
+          exposedItems.add(itemId);
+          exposureQueue.push({
+            eventName: 'item_exposure',
+            itemId,
+            timestamp: Date.now(),
+            position: entry.target.getBoundingClientRect()
+          });
+        }
+      }
+    });
+  }, { threshold: 0.5 }); // 元素50%进入可视区域才触发
+
+  // 批量上报
+  setInterval(() => {
+    if (exposureQueue.length > 0) {
+      sendBatchEvents([...exposureQueue]);
+      exposureQueue.length = 0;
+    }
+  }, 1000);
   ```
-- **API接口**：`/api/analytics/batch`（POST）
-  - 批量接收埋点数据
-  - 支持每批最多100条数据
-  - 提供部分插入成功的容错处理
 
-**数据流**：
-1. 前端调用`analytics.track()`记录用户行为
-2. 事件数据被缓存到队列中
-3. 达到发送条件时自动调用`flush()`方法发送数据
-4. 后端接收数据并批量插入到MongoDB
+##### 长列表交互优化
 
-**扩展性**：
-- 可轻松添加新的埋点事件
-- 可扩展`metadata`字段存储更多自定义数据
-- 可调整批量发送的大小和频率
-- 后续可添加数据分析和可视化功能
+- **虚拟滚动**：实现虚拟列表，只渲染可视区域内的元素，减少DOM节点数量
+- **数据分页加载**：使用分页机制加载列表数据，避免一次性加载过多数据
+- **预加载**：滑动到列表底部前，预加载下一页数据，提升用户体验
+- **交互事件委托**：使用事件委托模式处理列表项的点击事件，减少事件监听器数量
+- **实现示例**：
+  ```javascript
+  // 前端实现虚拟列表核心逻辑
+  class VirtualList {
+    constructor(container, options) {
+      this.container = container;
+      this.items = options.items;
+      this.itemHeight = options.itemHeight;
+      this.visibleCount = Math.ceil(container.clientHeight / this.itemHeight);
+
+      this.updateVisibleItems = throttle(this.updateVisibleItems.bind(this), 16);
+      container.addEventListener('scroll', this.updateVisibleItems);
+    }
+
+    updateVisibleItems() {
+      const scrollTop = this.container.scrollTop;
+      const startIndex = Math.floor(scrollTop / this.itemHeight);
+      const endIndex = Math.min(startIndex + this.visibleCount + 2, this.items.length);
+      
+      // 只渲染可见区域及缓冲区的元素
+      this.renderItems(startIndex, endIndex);
+    }
+  }
+  ```
 
 ### 安全策略文档
 
