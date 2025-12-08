@@ -401,10 +401,10 @@ const CreatePost = () => {
       cloudSyncFailed.current = true;
     }
 
-    // 延迟2秒再返回，避免显示404提示
+    // 延迟5秒再返回，避免显示404提示
     setTimeout(() => {
       navigate(-1);
-    }, 2000);
+    }, 5000);
   };
 
   // 图片上传
@@ -454,6 +454,14 @@ const CreatePost = () => {
   // 发布或更新帖子
   const handleSubmit = async () => {
     if (!content && fileList.length === 0) return Toast.show('内容不能为空');
+
+    // 自动生成AI标签
+    if (tags.length === 0) {
+      const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
+      if (fullText.length >= 2) {
+        await handleAiLabel();
+      }
+    }
 
     let finalTitle = title;
     if (!finalTitle) {
@@ -657,29 +665,7 @@ const CreatePost = () => {
           />
         </div>
 
-        {/* AI 区域 */}
-        <div style={styles.aiSection}>
-          <div style={{ display: 'flex', alignItems: 'center', justifyContent: 'space-between' }}>
-            <span style={{ fontSize: '12px', color: '#aaa' }}>TAGS</span>
-            <button
-              style={{ ...styles.aiBtn, opacity: isAiLoading ? 0.7 : 1 }}
-              onClick={handleAiLabel}
-              disabled={isAiLoading}
-            >
-              <span>{isAiLoading ? '思考中...' : 'AI 智能提取'}</span>
-            </button>
-          </div>
-          <div style={styles.tagsWrapper}>
-            {tags.map((tag, i) => (
-              <span key={i} style={styles.tagItem}>#{tag}</span>
-            ))}
-          </div>
-        </div>
 
-        {/* 自动保存提示 */}
-        <div style={styles.autoSaveHint}>
-          草稿每30秒自动保存
-        </div>
 
       </div>
     </div>
