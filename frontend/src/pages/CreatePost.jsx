@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useRef } from 'react';
+import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input } from 'antd-mobile';
@@ -113,7 +113,10 @@ const CreatePost = () => {
   const [tags, setTags] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
   const [isAiLoading, setIsAiLoading] = useState(false);
+  const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isRestoring = useRef(false);
+  const autoSaveTimerRef = useRef(null);
+  const cloudSyncFailed = useRef(false);
 
   // 编辑模式相关状态
   const isEditMode = location.state?.isEdit || false;
@@ -238,17 +241,118 @@ const CreatePost = () => {
     }
   }, []);
 
-  // 3. 自动保存
+  // 3. 30秒自动云端保存
   useEffect(() => {
     if (isRestoring.current || (!title && !content && fileList.length === 0)) return;
-    const timer = setTimeout(() => {
+
+    // 清除之前的定时器
+    if (autoSaveTimerRef.current) {
+      clearTimeout(autoSaveTimerRef.current);
+    }
+
+    autoSaveTimerRef.current = setTimeout(async () => {
+      // 保存到本地存储
       const key = getDraftKey();
-      const draftData = { title, content, tags, fileList, updatedAt: Date.now() };
+      const draftData = { title, content, tags, fileList, updatedAt: Date.now(), cloudSyncFailed: cloudSyncFailed.current };
       localStorage.setItem(key, JSON.stringify(draftData));
       setLastSaved(new Date());
-    }, 1000);
-    return () => clearTimeout(timer);
+
+      // 如果在线，尝试云端保存
+      if (isOnline) {
+        try {
+          const cloudData = {
+            title, content, tags,
+            images: fileList.map(item => item.url).filter(Boolean),
+            updatedAt: Date.now()
+          };
+          await service.post('/posts/draft', cloudData);
+          cloudSyncFailed.current = false;
+        } catch (error) {
+          console.error('云端自动保存失败:', error);
+          cloudSyncFailed.current = true;
+        }
+      } else {
+        cloudSyncFailed.current = true;
+      }
+    }, 30000); // 30秒自动保存
+
+    return () => {
+      if (autoSaveTimerRef.current) {
+        clearTimeout(autoSaveTimerRef.current);
+      }
+    };
+  }, [title, content, tags, fileList, isOnline]);
+
+  // 4. 监听网络状态变化
+  useEffect(() => {
+    const handleOnline = async () => {
+      setIsOnline(true);
+      // 恢复网络后，自动同步未保存的草稿
+      if (cloudSyncFailed.current) {
+        try {
+          const key = getDraftKey();
+          const localDraft = JSON.parse(localStorage.getItem(key));
+          if (localDraft) {
+            const cloudData = {
+              title: localDraft.title || title,
+              content: localDraft.content || content,
+              tags: localDraft.tags || tags,
+              images: (localDraft.fileList || fileList).map(item => item.url).filter(Boolean),
+              updatedAt: Date.now()
+            };
+            await service.post('/posts/draft', cloudData);
+            cloudSyncFailed.current = false;
+            setLastSaved(new Date());
+            Toast.show('草稿已同步到云端');
+          }
+        } catch (error) {
+          console.error('网络恢复后同步失败:', error);
+        }
+      }
+    };
+
+    const handleOffline = () => {
+      setIsOnline(false);
+      Toast.show('网络已断开，将在本地保存草稿');
+    };
+
+    window.addEventListener('online', handleOnline);
+    window.addEventListener('offline', handleOffline);
+
+    return () => {
+      window.removeEventListener('online', handleOnline);
+      window.removeEventListener('offline', handleOffline);
+    };
   }, [title, content, tags, fileList]);
+
+  // 5. 退出时保存到云端
+  const handleExit = async () => {
+    // 保存到本地存储
+    const key = getDraftKey();
+    const draftData = { title, content, tags, fileList, updatedAt: Date.now() };
+    localStorage.setItem(key, JSON.stringify(draftData));
+
+    // 如果在线，尝试云端保存
+    if (isOnline) {
+      try {
+        const cloudData = {
+          title, content, tags,
+          images: fileList.map(item => item.url).filter(Boolean),
+          updatedAt: Date.now()
+        };
+        await service.post('/posts/draft', cloudData);
+        cloudSyncFailed.current = false;
+      } catch (error) {
+        console.error('退出时云端保存失败:', error);
+        cloudSyncFailed.current = true;
+      }
+    } else {
+      cloudSyncFailed.current = true;
+    }
+
+    // 返回上一页
+    navigate(-1);
+  };
 
   // 图片上传
   const uploadImage = async (file) => {
@@ -346,7 +450,7 @@ const CreatePost = () => {
     <div style={styles.container}>
       <NavBar
         style={styles.navBar}
-        onBack={() => navigate(-1)}
+        onBack={handleExit}
         right={<button
           style={{
             ...styles.publishBtn,

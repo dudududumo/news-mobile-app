@@ -369,9 +369,6 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]); // 当id变化时重新执行
 
-  // 删除评论功能
-  const [commentToDelete, setCommentToDelete] = useState(null);
-
   // 显示主题化弹窗（与Home页面一致的样式）
   const showThemeModal = (title, content, onConfirm, confirmText = '确定') => {
     const modal = Modal.show({
@@ -408,20 +405,19 @@ const PostDetail = ({ isAuthenticated }) => {
   };
 
   const handleDeleteComment = (commentId) => {
-    setCommentToDelete(commentId);
-    showThemeModal('确认删除', '确定要删除这条评论吗？', confirmDeleteComment, '删除');
+    showThemeModal('确认删除', '确定要删除这条评论吗？', () => confirmDeleteComment(commentId), '删除');
   };
 
-  const confirmDeleteComment = async () => {
-    if (!commentToDelete) return;
+  const confirmDeleteComment = async (commentId) => {
+    if (!commentId) return;
 
     try {
       Toast.show({ content: '删除中...', icon: 'loading', duration: 0 });
-      const res = await service.delete(`/posts/${id}/comments/${commentToDelete}`);
+      const res = await service.delete(`/posts/${id}/comments/${commentId}`);
 
       // 更新评论列表
       setComments(prevComments =>
-        prevComments.filter(comment => comment._id !== commentToDelete)
+        prevComments.filter(comment => comment._id !== commentId)
       );
 
       // 更新帖子的评论数
@@ -434,7 +430,7 @@ const PostDetail = ({ isAuthenticated }) => {
       analytics.track('comment_delete', {
         userId: currentUserId,
         postId: id,
-        commentId: commentToDelete
+        commentId: commentId
       });
 
       Toast.show({ content: '删除成功', icon: 'success' });
@@ -444,8 +440,6 @@ const PostDetail = ({ isAuthenticated }) => {
         content: error.response?.data?.message || '删除评论失败',
         icon: 'fail'
       });
-    } finally {
-      setCommentToDelete(null);
     }
   };
 
