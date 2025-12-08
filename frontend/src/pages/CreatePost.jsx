@@ -210,10 +210,16 @@ const CreatePost = () => {
       if (userStr) {
         const user = JSON.parse(userStr);
         const uid = user.id || user._id || user.phone || 'guest';
+        if (isEditMode && editingPost) {
+          return `post_draft_${uid}_edit_${editingPost._id}`;
+        }
         return `post_draft_${uid}`;
       }
     } catch (e) {
       console.error('读取用户信息失败', e);
+    }
+    if (isEditMode && editingPost) {
+      return `post_draft_guest_edit_${editingPost._id}`;
     }
     return 'post_draft_guest';
   };
@@ -396,7 +402,7 @@ const CreatePost = () => {
   }, [title, content, tags, fileList]);
 
   // 5. 退出时保存到云端
-  const handleExit = async () => {
+  const handleExit = () => {
     // 保存到本地存储
     const key = getDraftKey();
     const draftData = { title, content, tags, fileList, updatedAt: Date.now() };
@@ -404,14 +410,15 @@ const CreatePost = () => {
 
     // 如果在线，尝试云端保存（异步执行，不等待结果）
     if (isOnline) {
+      // 使用try-catch包裹，避免控制台显示错误信息
       service.post('/posts/draft', {
         title, content, tags,
         images: fileList.map(item => item.url).filter(Boolean),
         updatedAt: Date.now()
       }).then(() => {
         cloudSyncFailed.current = false;
-      }).catch(error => {
-        console.error('退出时云端保存失败:', error);
+      }).catch(() => {
+        // 不显示错误信息，只更新状态
         cloudSyncFailed.current = true;
       });
     } else {
@@ -514,7 +521,7 @@ const CreatePost = () => {
 
   return (
     <div style={styles.container}>
-      {/* 自定义导航栏 */}
+      {/* 自定义导航栏 - 与PostDetail保持一致 */}
       <div style={styles.navBar}>
         <div style={styles.navContent}>
           {/* 左侧返回按钮 */}
@@ -537,32 +544,40 @@ const CreatePost = () => {
             &larr;
           </button>
 
-          {/* 中间标题 */}
-          <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>
-            {isEditMode ? '编辑帖子' : '撰写新篇'}
-          </span>
+          {/* 中间留空 */}
+          <div></div>
 
-          {/* 右侧内容 */}
-          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
-            {/* Logo */}
-            <div style={styles.navLogo}>城市头条</div>
-
-            {/* 发布按钮 */}
-            <button
-              style={{
-                ...styles.publishBtn,
-                opacity: isSubmitting ? 0.7 : 1,
-                pointerEvents: isSubmitting ? 'none' : 'auto'
-              }}
-              onClick={handleSubmit}
-              disabled={isSubmitting}
-            >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>
-          </div>
+          {/* 右侧Logo */}
+          <div style={styles.navLogo}>城市头条</div>
         </div>
       </div>
 
       {/* 为固定导航栏留出空间 */}
       <div style={{ height: '56px' }}></div>
+
+      {/* 标题和发布按钮区域 */}
+      <div style={{
+        padding: '0 16px 16px',
+        display: 'flex',
+        justifyContent: 'space-between',
+        alignItems: 'center',
+        borderBottom: '1px solid #f5f5f5'
+      }}>
+        <span style={{ fontWeight: 'bold', fontSize: '18px', color: 'var(--c-text)' }}>
+          {isEditMode ? '编辑帖子' : '撰写新篇'}
+        </span>
+
+        {/* 发布按钮 */}
+        <button
+          style={{
+            ...styles.publishBtn,
+            opacity: isSubmitting ? 0.7 : 1,
+            pointerEvents: isSubmitting ? 'none' : 'auto'
+          }}
+          onClick={handleSubmit}
+          disabled={isSubmitting}
+        >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>
+      </div>
 
       <div style={styles.statusBar}>
         {isEditMode && editingPost ? (

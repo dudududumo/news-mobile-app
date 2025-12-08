@@ -414,4 +414,71 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
   }
 });
 
+// --- 16. 保存草稿 ---  
+router.post('/draft', authMiddleware, async (req, res) => {
+  try {
+    const { title, content, images, tags, originalPostId } = req.body;
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: '未授权' });
+
+    if (originalPostId) {
+      // 更新现有草稿
+      const draft = await Post.findByIdAndUpdate(
+        originalPostId,
+        {
+          title: title || '',
+          content,
+          images: images || [],
+          tags: tags || [],
+          status: 'draft',
+          editAt: new Date()
+        },
+        { new: true }
+      );
+
+      if (!draft) {
+        return res.status(404).json({ message: '草稿不存在' });
+      }
+
+      res.json(draft);
+    } else {
+      // 创建新草稿
+      const newDraft = new Post({
+        title: title || '',
+        content,
+        images: images || [],
+        tags: tags || [],
+        author: userId,
+        status: 'draft',
+        likes: 0,
+        commentsCount: 0
+      });
+
+      const savedDraft = await newDraft.save();
+      await savedDraft.populate('author', 'nickname avatar');
+      res.status(201).json(savedDraft);
+    }
+  } catch (error) {
+    console.error('保存草稿失败:', error);
+    res.status(500).json({ message: '保存草稿失败:' + error.message });
+  }
+});
+
+// --- 17. 获取草稿列表 ---  
+router.get('/draft', authMiddleware, async (req, res) => {
+  try {
+    const userId = req.user?.userId;
+    if (!userId) return res.status(401).json({ message: '未授权' });
+
+    const drafts = await Post.find({ author: userId, status: 'draft' })
+      .sort({ editAt: -1 })
+      .populate('author', 'nickname avatar');
+
+    res.json(drafts);
+  } catch (error) {
+    console.error('获取草稿列表失败:', error);
+    res.status(500).json({ message: '获取草稿列表失败:' + error.message });
+  }
+});
+
 module.exports = router;
