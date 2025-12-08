@@ -3,7 +3,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input, Modal } from 'antd-mobile';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CompassOutline, ArrowLeftOutline } from 'antd-mobile-icons';
+import { CompassOutline } from 'antd-mobile-icons';
 import service from '../services/axios';
 
 // --- 样式定义 ---
@@ -524,13 +524,17 @@ const CreatePost = () => {
               border: 'none',
               padding: '8px',
               cursor: 'pointer',
+              fontSize: '24px',
+              color: '#000',
               display: 'flex',
               alignItems: 'center',
-              justifyContent: 'center'
+              justifyContent: 'center',
+              width: '24px',
+              height: '24px'
             }}
             onClick={handleExit}
           >
-            <ArrowLeftOutline style={{ fontSize: '20px', color: '#000' }} />
+            &larr;
           </button>
 
           {/* 中间标题 */}
