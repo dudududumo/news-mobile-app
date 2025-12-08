@@ -121,8 +121,6 @@ const styles = {
 };
 
 // --- Quill 配置 ---
-// ReactQuill 引用，用于解决 findDOMNode 警告
-const quillRef = useRef(null);
 const quillModules = {
   toolbar: [
     [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -146,6 +144,8 @@ const CreatePost = () => {
   const isRestoring = useRef(false);
   const autoSaveTimerRef = useRef(null);
   const cloudSyncFailed = useRef(false);
+  // ReactQuill 引用，用于解决 findDOMNode 警告
+  const quillRef = useRef(null);
 
   // 编辑模式相关状态
   const isEditMode = location.state?.isEdit || false;
@@ -261,29 +261,39 @@ const CreatePost = () => {
     });
   };
 
+  // 用于标记弹窗是否已显示
+  const modalShown = useRef(false);
+
   // 恢复草稿
   useEffect(() => {
-    const key = getDraftKey();
-    const draft = localStorage.getItem(key);
+    // 只在首次渲染时执行
+    if (!modalShown.current) {
+      const key = getDraftKey();
+      const draft = localStorage.getItem(key);
 
-    if (draft) {
-      showThemeModal(
-        '恢复编辑',
-        '发现未发布的草稿，是否继续编辑？',
-        () => {
-          try {
-            const data = JSON.parse(draft);
-            isRestoring.current = true;
-            setTitle(data.title || '');
-            setContent(data.content || '');
-            setFileList(data.fileList || []);
-            Toast.show('草稿已恢复');
-            setTimeout(() => { isRestoring.current = false; }, 1000);
-          } catch (e) { console.error(e); }
-        },
-        '继续编辑',
-        () => localStorage.removeItem(key)
-      );
+      if (draft) {
+        // 使用setTimeout避免与其他初始化逻辑冲突
+        setTimeout(() => {
+          showThemeModal(
+            '恢复编辑',
+            '发现未发布的草稿，是否继续编辑？',
+            () => {
+              try {
+                const data = JSON.parse(draft);
+                isRestoring.current = true;
+                setTitle(data.title || '');
+                setContent(data.content || '');
+                setFileList(data.fileList || []);
+                Toast.show('草稿已恢复');
+                setTimeout(() => { isRestoring.current = false; }, 1000);
+              } catch (e) { console.error(e); }
+            },
+            '继续编辑',
+            () => localStorage.removeItem(key)
+          );
+        }, 300);
+      }
+      modalShown.current = true;
     }
   }, []);
 
@@ -370,29 +380,37 @@ const CreatePost = () => {
     };
   }, [title, content, fileList]);
 
+  // 检查内容是否为空
+  const isContentEmpty = () => {
+    // 检查标题是否为空
+    if (title.trim()) return false;
+
+    // 检查内容是否为空（去除HTML标签和空白）
+    const plainContent = content.replace(/<[^>]*>/g, '').trim();
+    if (plainContent) return false;
+
+    // 检查是否有图片
+    if (fileList.length > 0) return false;
+
+    return true;
+  };
+
   // 5. 退出时保存到云端
   const handleExit = () => {
-    // 如果标题、内容和文件列表都为空，不保存草稿
-    if (title || content || fileList.length > 0) {
-      // 保存到本地存储
+    // 如果内容不为空，才保存草稿
+    if (!isContentEmpty()) {
+      // 只保存到本地存储，不进行云端保存
+      // 这样可以避免快速退出时的服务器错误
       const key = getDraftKey();
       const draftData = { title, content, fileList, updatedAt: Date.now() };
       localStorage.setItem(key, JSON.stringify(draftData));
 
-      // 如果在线，尝试云端保存（异步执行，不等待结果）
-      if (isOnline) {
-        // 使用try-catch包裹，避免控制台显示错误信息
-        service.post('/posts/draft', {
-          title, content,
-          images: fileList.map(item => item.url).filter(Boolean),
-          updatedAt: Date.now()
-        }).then(() => {
-          cloudSyncFailed.current = false;
-        }).catch(() => {
-          // 不显示错误信息，只更新状态
-          cloudSyncFailed.current = true;
-        });
-      }
+      // 云端保存只在30秒自动保存时进行，不在退出时进行
+      // 这样可以避免快速退出时的服务器错误
+    } else {
+      // 内容为空，删除草稿
+      const key = getDraftKey();
+      localStorage.removeItem(key);
     }
 
     // 直接返回，不添加延迟
@@ -645,6 +663,7 @@ const CreatePost = () => {
             onChange={setContent}
             modules={quillModules}
             placeholder="在此记录生活与灵感..."
+            bounds="#root"
           />
         </div>
 
