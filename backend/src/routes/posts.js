@@ -70,11 +70,43 @@ router.post('/', authMiddleware, async (req, res) => {
     const { title, content, images, tags } = req.body;
     if (!req.user?.userId) return res.status(401).json({ message: '未授权' });
 
+    // 无论是否提供标签，都在发布时自动生成AI标签
+    let finalTags = [];
+    // 准备用于生成标签的内容
+    const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
+    if (fullText.length > 10) {
+      try {
+        // 调用AI标签生成功能
+        const completion = await client.chat.completions.create({
+          messages: [
+            { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
+            { role: "user", content: fullText }
+          ],
+          model: MODEL_ID,
+        });
+
+        try {
+          const aiResult = completion.choices[0].message.content;
+          const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
+          finalTags = JSON.parse(cleanJson);
+          console.log('AI生成的标签:', finalTags);
+        } catch (parseError) {
+          console.error('AI JSON解析失败，使用默认标签:', parseError);
+          finalTags = ['日常', '生活'];
+        }
+      } catch (aiError) {
+        console.error('AI标签生成失败，使用默认标签:', aiError);
+        finalTags = ['日常', '生活'];
+      }
+    } else {
+      finalTags = ['日常', '生活'];
+    }
+
     const newPost = new Post({
       title: title || '',
       content,
       images: images || [],
-      tags: tags || [],
+      tags: finalTags,
       author: req.user.userId,
       likes: 0,
       commentsCount: 0
@@ -90,34 +122,7 @@ router.post('/', authMiddleware, async (req, res) => {
 });
 
 // --- 6. AI生成标签 ---
-router.post('/ai-label', authMiddleware, async (req, res) => {
-  try {
-    const { content } = req.body;
-    if (!content) return res.status(400).json({ message: '内容不能为空' });
 
-    const completion = await client.chat.completions.create({
-      messages: [
-        { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
-        { role: "user", content }
-      ],
-      model: MODEL_ID,
-    });
-
-    let tags = [];
-    try {
-      const aiResult = completion.choices[0].message.content;
-      const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
-      tags = JSON.parse(cleanJson);
-    } catch {
-      console.error('AI JSON解析失败，使用默认标签');
-      tags = ['AI推荐', '热点'];
-    }
-    res.json({ tags, confidence: 0.9 });
-  } catch (error) {
-    console.error('AI Service Error:', error);
-    res.json({ tags: ['日常', '生活'], confidence: 0.5 });
-  }
-});
 
 // --- 7. 图片上传到 COS ---
 router.post('/upload', authMiddleware, upload.array('images', 9), async (req, res) => {
@@ -323,7 +328,7 @@ router.delete('/:id', authMiddleware, async (req, res) => {
     // 检查帖子是否存在且属于当前用户
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: '帖子不存在' });
-    
+
     // 确保只能删除自己的帖子
     if (post.author.toString() !== userId) {
       return res.status(403).json({ message: '无权删除此帖子' });
@@ -346,16 +351,48 @@ router.put('/:id', authMiddleware, async (req, res) => {
   try {
     const { id } = req.params;
     const { title, content, images, tags } = req.body;
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: '无效的文章ID' });
 
     // 检查帖子是否存在且属于当前用户
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: '帖子不存在' });
-    
+
     // 确保只能编辑自己的帖子
     if (post.author.toString() !== userId) {
       return res.status(403).json({ message: '无权编辑此帖子' });
+    }
+
+    // 处理标签：无论用户是否提供标签，都自动生成AI标签
+    let finalTags = [];
+    // 准备用于生成标签的内容
+    const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
+    if (fullText.length > 10) {
+      try {
+        // 调用AI标签生成功能
+        const completion = await client.chat.completions.create({
+          messages: [
+            { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
+            { role: "user", content: fullText }
+          ],
+          model: MODEL_ID,
+        });
+
+        try {
+          const aiResult = completion.choices[0].message.content;
+          const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
+          finalTags = JSON.parse(cleanJson);
+          console.log('AI生成的标签:', finalTags);
+        } catch (parseError) {
+          console.error('AI JSON解析失败，使用默认标签:', parseError);
+          finalTags = ['日常', '生活'];
+        }
+      } catch (aiError) {
+        console.error('AI标签生成失败，使用默认标签:', aiError);
+        finalTags = ['日常', '生活'];
+      }
+    } else {
+      finalTags = ['日常', '生活'];
     }
 
     // 更新帖子内容
@@ -365,7 +402,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
         title: title || '',
         content,
         images: images || [],
-        tags: tags || [],
+        tags: finalTags,
         editAt: new Date()
       },
       { new: true }
@@ -385,18 +422,18 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
 
   try {
     const { id, commentId } = req.params;
-    
+
     if (!mongoose.Types.ObjectId.isValid(id)) return res.status(400).json({ message: '无效的文章ID' });
     if (!mongoose.Types.ObjectId.isValid(commentId)) return res.status(400).json({ message: '无效的评论ID' });
 
     // 检查帖子是否存在
     const post = await Post.findById(id);
     if (!post) return res.status(404).json({ message: '帖子不存在' });
-    
+
     // 找到评论
     const commentIndex = post.comments.findIndex(c => c._id.toString() === commentId);
     if (commentIndex === -1) return res.status(404).json({ message: '评论不存在' });
-    
+
     // 确保只能删除自己的评论
     if (post.comments[commentIndex].user.toString() !== userId) {
       return res.status(403).json({ message: '无权删除此评论' });
@@ -405,7 +442,7 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
     // 删除评论
     post.comments.splice(commentIndex, 1);
     post.commentsCount = post.comments.length;
-    
+
     await post.save();
     res.json({ message: '评论删除成功', commentsCount: post.commentsCount });
   } catch (error) {
@@ -417,9 +454,17 @@ router.delete('/:id/comments/:commentId', authMiddleware, async (req, res) => {
 // --- 16. 保存草稿 ---  
 router.post('/draft', authMiddleware, async (req, res) => {
   try {
+    console.log('保存草稿请求参数:', req.body);
+    console.log('用户信息:', req.user);
+
     const { title, content, images, tags, originalPostId } = req.body;
     const userId = req.user?.userId;
-    if (!userId) return res.status(401).json({ message: '未授权' });
+
+    // 确保userId存在
+    if (!userId) {
+      console.error('保存草稿失败: 未找到用户ID');
+      return res.status(401).json({ message: '未授权' });
+    }
 
     if (originalPostId) {
       // 更新现有草稿
@@ -427,7 +472,7 @@ router.post('/draft', authMiddleware, async (req, res) => {
         originalPostId,
         {
           title: title || '',
-          content,
+          content: content || '',
           images: images || [],
           tags: tags || [],
           status: 'draft',
@@ -445,7 +490,7 @@ router.post('/draft', authMiddleware, async (req, res) => {
       // 创建新草稿
       const newDraft = new Post({
         title: title || '',
-        content,
+        content: content || '',
         images: images || [],
         tags: tags || [],
         author: userId,
@@ -460,6 +505,7 @@ router.post('/draft', authMiddleware, async (req, res) => {
     }
   } catch (error) {
     console.error('保存草稿失败:', error);
+    console.error('错误堆栈:', error.stack);
     res.status(500).json({ message: '保存草稿失败:' + error.message });
   }
 });

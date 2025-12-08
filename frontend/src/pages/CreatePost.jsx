@@ -38,7 +38,20 @@ const styles = {
     fontSize: '24px',
     fontWeight: '700',
     color: '#000',
-    letterSpacing: '-0.5px'
+    letterSpacing: '-0.5px',
+    flex: 1,
+    textAlign: 'center'
+  },
+  backButton: {
+    fontSize: '24px',
+    cursor: 'pointer',
+    padding: '4px',
+    color: '#000',
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    width: '24px',
+    height: '24px',
   },
   paperCard: {
     background: '#fff',
@@ -86,19 +99,7 @@ const styles = {
     cursor: 'pointer',
     transition: 'all 0.3s',
   },
-  tagsWrapper: {
-    display: 'flex',
-    flexWrap: 'wrap',
-    gap: '8px',
-  },
-  tagItem: {
-    background: '#FDF6F5',
-    color: 'var(--c-text)',
-    border: '1px solid rgba(160, 64, 48, 0.1)',
-    padding: '4px 12px',
-    borderRadius: '4px',
-    fontSize: '13px',
-  },
+
   // 发布按钮样式
   publishBtn: {
     fontSize: '14px',
@@ -138,9 +139,7 @@ const CreatePost = () => {
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [fileList, setFileList] = useState([]);
-  const [tags, setTags] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
-  const [isAiLoading, setIsAiLoading] = useState(false);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const isRestoring = useRef(false);
   const autoSaveTimerRef = useRef(null);
@@ -158,7 +157,6 @@ const CreatePost = () => {
       setTimeout(() => {
         setTitle(editingPost.title || '');
         setContent(editingPost.content || '');
-        setTags(editingPost.tags || []);
 
         // 转换图片数据格式
         if (editingPost.images && editingPost.images.length > 0) {
@@ -172,36 +170,7 @@ const CreatePost = () => {
     }
   }, [isEditMode, editingPost]);
 
-  // ===============================================
-  // 🔥🔥🔥 新增逻辑：监听 AI 话题挑战跳转 🔥🔥🔥
-  // ===============================================
-  useEffect(() => {
-    // 检查路由是否携带了 autoFillTopic
-    if (location.state?.autoFillTopic) {
-      const newTag = location.state.autoFillTopic;
 
-      // 避免重复添加，且避免和草稿恢复冲突（这里做个简单的延时确保在草稿恢复后执行）
-      setTimeout(() => {
-        setTags(prevTags => {
-          if (!prevTags.includes(newTag)) {
-            // 弹出提示
-            Toast.show({
-              content: (
-                <div style={{ display: 'flex', flexDirection: 'column', alignItems: 'center' }}>
-                  <span style={{ fontSize: 14 }}>已接受话题挑战</span>
-                  <span style={{ color: 'var(--c-terra)', fontWeight: 'bold', marginTop: 4 }}>#{newTag}</span>
-                </div>
-              ),
-              icon: <CompassOutline style={{ color: 'var(--c-terra)', fontSize: 32 }} />,
-              duration: 2500,
-            });
-            return [...prevTags, newTag];
-          }
-          return prevTags;
-        });
-      }, 600); // 延时 600ms，等待草稿恢复逻辑（你代码里的 1000ms 恢复 flag）稳定
-    }
-  }, [location.state]);
 
   // --- 获取当前用户的专属草稿 Key ---
   const getDraftKey = () => {
@@ -290,7 +259,7 @@ const CreatePost = () => {
     });
   };
 
-  // 2. 恢复草稿
+  // 恢复草稿
   useEffect(() => {
     const key = getDraftKey();
     const draft = localStorage.getItem(key);
@@ -305,7 +274,6 @@ const CreatePost = () => {
             isRestoring.current = true;
             setTitle(data.title || '');
             setContent(data.content || '');
-            setTags(data.tags || []);
             setFileList(data.fileList || []);
             Toast.show('草稿已恢复');
             setTimeout(() => { isRestoring.current = false; }, 1000);
@@ -329,7 +297,7 @@ const CreatePost = () => {
     autoSaveTimerRef.current = setTimeout(async () => {
       // 保存到本地存储
       const key = getDraftKey();
-      const draftData = { title, content, tags, fileList, updatedAt: Date.now(), cloudSyncFailed: cloudSyncFailed.current };
+      const draftData = { title, content, fileList, updatedAt: Date.now(), cloudSyncFailed: cloudSyncFailed.current };
       localStorage.setItem(key, JSON.stringify(draftData));
       setLastSaved(new Date());
 
@@ -337,7 +305,7 @@ const CreatePost = () => {
       if (isOnline) {
         try {
           const cloudData = {
-            title, content, tags,
+            title, content,
             images: fileList.map(item => item.url).filter(Boolean),
             updatedAt: Date.now()
           };
@@ -372,7 +340,6 @@ const CreatePost = () => {
             const cloudData = {
               title: localDraft.title || title,
               content: localDraft.content || content,
-              tags: localDraft.tags || tags,
               images: (localDraft.fileList || fileList).map(item => item.url).filter(Boolean),
               updatedAt: Date.now()
             };
@@ -452,26 +419,7 @@ const CreatePost = () => {
 
 
 
-  // AI 生成标签
-  const handleAiLabel = async () => {
-    const fullText = `${title}\n${content.replace(/<[^>]+>/g, '')}`.trim();
-    if (fullText.length < 2) return Toast.show('请写点标题或内容再试');
 
-    setIsAiLoading(true);
-    try {
-      const res = await service.post('/posts/ai-label', { content: fullText });
-      if (res.tags && res.tags.length > 0) {
-        setTags(res.tags);
-        Toast.show({ content: '✨ 灵感已捕获', icon: 'success' });
-      } else {
-        Toast.show('AI 没找到合适的标签');
-      }
-    } catch (e) {
-      // error handled by interceptor
-    } finally {
-      setIsAiLoading(false);
-    }
-  };
 
   // 发布或更新帖子
   const handleSubmit = async () => {
@@ -490,7 +438,6 @@ const CreatePost = () => {
         title: finalTitle,
         content,
         images: imageUrls,
-        tags,
         status: 'published'
       };
 
@@ -524,31 +471,11 @@ const CreatePost = () => {
       {/* 自定义导航栏 - 与PostDetail保持一致 */}
       <div style={styles.navBar}>
         <div style={styles.navContent}>
-          {/* 左侧返回按钮 */}
-          <button
-            style={{
-              background: 'none',
-              border: 'none',
-              padding: '8px',
-              cursor: 'pointer',
-              fontSize: '24px',
-              color: '#000',
-              display: 'flex',
-              alignItems: 'center',
-              justifyContent: 'center',
-              width: '24px',
-              height: '24px'
-            }}
-            onClick={handleExit}
-          >
-            &larr;
-          </button>
-
-          {/* 中间留空 */}
-          <div></div>
-
-          {/* 右侧Logo */}
-          <div style={styles.navLogo}>城市头条</div>
+          <div onClick={handleExit} style={styles.backButton}>
+            &lt;
+          </div>
+          <div style={styles.navLogo}>City Daily.</div>
+          <div style={{ width: '24px' }} /> {/* 占位元素，保持logo居中 */}
         </div>
       </div>
 
