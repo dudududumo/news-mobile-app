@@ -13,8 +13,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const OpenAI = require('openai');
-// 暂时注释掉COS模块，解决安装问题
-// const COS = require('cos-nodejs-sdk-v5');
+// 导入COS模块
+const COS = require('cos-nodejs-sdk-v5');
 
 // --- 1. AI 配置 ---
 const client = new OpenAI({
