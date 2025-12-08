@@ -1,13 +1,26 @@
+/**
+ * 数据库种子数据生成文件
+ * 用于向MongoDB数据库中插入测试数据
+ */
+
 const mongoose = require('mongoose');
 const dotenv = require('dotenv');
-const User = require('./models/User'); // 确保路径正确
-const Post = require('./models/Post'); // 确保路径正确
+const User = require('./models/User');
+const Post = require('./models/Post');
 
 // 加载环境变量
 dotenv.config();
 
+/**
+ * MongoDB连接URI
+ * @type {string}
+ */
 const MONGO_URI = process.env.MONGO_URI || 'mongodb://localhost:27017/news-app';
 
+/**
+ * 示例图片URL列表，用于生成测试帖子的图片
+ * @type {string[]}
+ */
 const sampleImages = [
   'https://images.unsplash.com/photo-1682687220742-aba13b6e50ba?w=500&q=80',
   'https://images.unsplash.com/photo-1682687221038-404670e01d46?w=500&q=80',
@@ -20,6 +33,11 @@ const sampleImages = [
   'https://images.unsplash.com/photo-1682687220067-dced9a881b56?w=500&q=80'
 ];
 
+/**
+ * 生成并插入种子数据到数据库
+ * @async
+ * @returns {Promise<void>}
+ */
 const seedData = async () => {
   try {
     await mongoose.connect(MONGO_URI);

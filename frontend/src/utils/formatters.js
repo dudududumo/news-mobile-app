@@ -1,17 +1,14 @@
-// 格式化时间 (使用 dayjs 替代，以保持与 Home.jsx 一致的相对时间显示)
-// 注意：如果您的环境不支持 dayjs, 可以使用下面的原生实现，但 Home.jsx 已经使用了 dayjs
-/*
-export const formatTime = (dateString) => {
-  const date = new Date(dateString);
-  const now = new Date();
-  const diffMs = now - date;
-  // ... (original implementation)
-  return '刚刚';
-};
-*/
+/**
+ * 工具函数格式化器
+ * @file src/utils/formatters.js
+ * @description 提供时间格式化和富文本样式等通用工具函数
+ */
 
-// 获取富文本样式 - 在本应用中，这些样式主要通过全局CSS类 (.ql-editor, .feed-rich-content) 来控制，
-// 但我们保留这个函数以备将来可能需要内联样式或更复杂的渲染。
+/**
+ * 获取富文本内容的样式配置
+ * @description 用于富文本编辑器和展示的样式定义，主要用于内联样式或复杂渲染场景
+ * @returns {Object} 富文本元素的样式配置对象
+ */
 export const getRichTextStyles = () => {
   return {
     p: {
@@ -76,9 +73,31 @@ export const getRichTextStyles = () => {
   };
 };
 
-// 暴露 formatTime，即使我们知道 Home.jsx 和 PostDetail.jsx 使用 dayjs，以满足原始文件结构
-// 建议在 PostDetail.jsx 中使用 dayjs 保持一致性。
+/**
+ * 时间格式化函数（已被dayjs替代）
+ * @description 为保持文件结构一致性而保留的占位函数，实际应用中请使用dayjs
+ * @param {string} dateString - 日期字符串
+ * @returns {string} 格式化后的时间提示
+ * @deprecated 已被dayjs库替代，建议使用dayjs进行时间格式化
+ */
 export const formatTime = (dateString) => {
   // 保持一个与dayjs不冲突的占位实现，确保文件可以导入
   return '时间格式化功能已被dayjs取代';
 };
+
+/**
+ * 格式化时间的原生实现（备用方案）
+ * @description 如果环境不支持dayjs，可以使用此原生JavaScript实现
+ * @param {string} dateString - 日期字符串
+ * @returns {string} 格式化后的相对时间
+ * @private 仅作为备用实现，项目中推荐使用dayjs
+ */
+/*
+const nativeFormatTime = (dateString) => {
+  const date = new Date(dateString);
+  const now = new Date();
+  const diffMs = now - date;
+  // ... (original implementation)
+  return '刚刚';
+};
+*/

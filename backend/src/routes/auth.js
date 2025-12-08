@@ -1,3 +1,7 @@
+/**
+ * 认证路由
+ * 处理用户登录、注册、验证码发送等认证相关功能
+ */
 const express = require('express');
 const router = express.Router();
 const authController = require('../controllers/authController');

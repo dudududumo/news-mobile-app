@@ -1,5 +1,13 @@
+/**
+ * 认证中间件
+ * 处理请求的身份验证，区分公开路径和需要登录的路径
+ */
 const jwt = require('jsonwebtoken');
-// 公开路径列表，这些路径允许未登录访问
+
+/**
+ * 公开路径列表，这些路径允许未登录访问
+ * @type {Array<{method: string, path: string}>}
+ */
 const publicPaths = [
   // 🔴 关键修复：允许 GET / 路径通过（可能作为健康检查或默认API响应）
   { method: 'GET', path: '/' }, // <-- 新增这一行
@@ -9,6 +17,13 @@ const publicPaths = [
   { method: 'POST', path: '/api/analytics' }
 ];
 
+/**
+ * 认证中间件函数
+ * @param {Object} req - Express请求对象
+ * @param {Object} res - Express响应对象
+ * @param {Function} next - Express next函数
+ * @returns {Promise<void>}
+ */
 module.exports = (req, res, next) => {
   try {
     console.log('--- 进入 Auth 中间件 ---');

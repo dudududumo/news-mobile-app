@@ -1,39 +1,67 @@
-/* src/index.css */
+/**
+ * 全局样式定义
+ * @file src/index.css
+ * @description 项目全局样式变量、基础样式和组件样式覆盖
+ */
+
 :root {
-  /* --- 色彩定义 --- */
-  /* 陶土红：更深沉一点，显得不那么艳俗 */
+  /* ================================ */
+  /* 色彩系统 */
+  /* ================================ */
+  /* 陶土红（主色调）：更深沉一点，显得不那么艳俗 */
   --c-terra: #A04030;
+  
   /* 背景色：暖灰色，衬托白色卡片 */
   --c-bg: #EFEBE9;
+  
   /* 文字色：深褐灰 */
   --c-text: #3E3A39;
 
-  /* --- 字体变量 --- */
-  /* 优先使用衬线体，营造精致感 */
+  /* ================================ */
+  /* 字体系统 */
+  /* ================================ */
+  /* 衬线体：营造精致感，用于标题等 */
   --font-serif: "Times New Roman", "Songti SC", "SimSun", serif;
+  
+  /* 无衬线体：用于正文内容 */
   --font-sans: "Helvetica Neue", sans-serif;
 
-  /* --- Ant Design Mobile 覆盖 --- */
-  /* --- Ant Design Mobile 变量覆盖 --- */
+  /* ================================ */
+  /* 组件库变量覆盖 */
+  /* ================================ */
+  /* Ant Design Mobile 主色调覆盖 */
   --adm-color-primary: var(--c-terra);
+  
+  /* Ant Design Mobile 全局字体覆盖 */
   --adm-font-family: var(--font-sans);
 }
+
+/* ================================ */
+/* 基础样式 */
+/* ================================ */
 
 body {
   margin: 0;
   background-color: var(--c-bg);
   color: var(--c-text);
-  /* 增加背景纹理感（可选） */
+  
+  /* 增加背景纹理感 */
   background-image: radial-gradient(#D7CCC8 1px, transparent 1px);
   background-size: 20px 20px;
+  
   font-family: var(--font-sans);
   -webkit-font-smoothing: antialiased;
 }
 
-/* 通用：精致输入框 */
+/* ================================ */
+/* 通用组件样式 */
+/* ================================ */
+
+/**
+ * 精致输入框样式
+ */
 .refined-input {
   --adm-input-font-size: 16px;
-  /* 字号调小，显精致 */
   padding: 8px 0;
   border-bottom: 1px solid #E0E0E0;
   transition: all 0.3s ease;
@@ -43,38 +71,41 @@ body {
   border-bottom: 1px solid var(--c-terra);
 }
 
-/* 🔥🔥🔥 弹窗样式核心修复 🔥🔥🔥 */
+/* ================================ */
+/* 弹窗组件样式 */
+/* ================================ */
 
-/* 1. 弹窗本体样式 */
+/**
+ * 登录/操作弹窗样式
+ */
 .login-modal {
   background: #FFFFFF;
   border-radius: 16px;
-  /* 确保阴影不被切掉，需要在父级开启 overflow: visible */
   box-shadow: 0 20px 40px rgba(62, 58, 57, 0.15);
   padding: 32px 24px;
-  /* 调整内边距，防止内容太挤 */
   position: relative;
   width: 100%;
   box-sizing: border-box;
-  /* 关键：防止宽度溢出 */
   overflow: visible;
-  /* 关键：让顶部红线和阴影显示出来 */
 }
 
-/* 2. 顶部陶土色装饰线 */
+/**
+ * 弹窗顶部装饰线
+ */
 .login-modal::before {
   content: '';
   position: absolute;
   top: 0;
   left: 20px;
-  /* 稍微往里收一点，显得精致 */
   right: 20px;
   height: 4px;
   background: var(--c-terra);
   border-radius: 0 0 2px 2px;
 }
 
-/* 3. 标题 */
+/**
+ * 弹窗标题
+ */
 .login-modal-title {
   font-family: var(--font-serif);
   font-size: 22px;
@@ -85,7 +116,9 @@ body {
   letter-spacing: 0.5px;
 }
 
-/* 4. 内容 */
+/**
+ * 弹窗内容
+ */
 .login-modal-content {
   text-align: center;
   color: #666;
@@ -94,13 +127,18 @@ body {
   margin-bottom: 24px;
 }
 
-/* 5. 按钮组 */
+/**
+ * 弹窗按钮组
+ */
 .login-modal-button-group {
   display: flex;
   gap: 12px;
   margin-top: 20px;
 }
 
+/**
+ * 弹窗按钮基础样式
+ */
 .login-modal-button {
   flex: 1;
   height: 40px;
@@ -115,12 +153,18 @@ body {
   white-space: nowrap;
 }
 
+/**
+ * 取消按钮
+ */
 .login-modal-cancel {
   background: #fff;
   border: 1px solid #E0E0E0;
   color: #999;
 }
 
+/**
+ * 确认按钮
+ */
 .login-modal-confirm {
   background: var(--c-terra);
   border: 1px solid var(--c-terra);
@@ -133,23 +177,27 @@ body {
   transform: scale(0.98);
 }
 
-/* 🔥🔥🔥 强制覆盖 Antd Mobile Modal 默认样式 🔥🔥🔥 */
-/* 必须加 !important 才能打败库的内联样式 */
+/* ================================ */
+/* 组件库样式覆盖 */
+/* ================================ */
 
-/* 移除默认的白色圆角背景盒子的样式，让我们的 .login-modal 接管 */
+/**
+ * Antd Mobile Modal 默认样式覆盖
+ * 必须使用 !important 覆盖库的内联样式
+ */
+
+/* 重置模态框主体样式 */
 .custom-modal-reset .adm-modal-body {
   padding: 0 !important;
   background: transparent !important;
 }
 
+/* 重置模态框容器样式 */
 .custom-modal-reset .adm-center-popup-box {
   max-width: 90vw !important;
-  /* 限制最大宽度为视口宽度的90% */
   width: 340px !important;
-  /* 默认宽度 */
   background: transparent !important;
   box-shadow: none !important;
   overflow: visible !important;
-  /* 关键：允许子元素阴影溢出 */
   border-radius: 16px !important;
 }

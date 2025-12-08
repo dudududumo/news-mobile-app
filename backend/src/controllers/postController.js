@@ -1,4 +1,7 @@
-// backend/src/controllers/postController.js
+/**
+ * 文章控制器
+ * 处理文章的创建、获取、图片上传等功能
+ */
 const Post = require('../models/Post');
 // 引入 User 是为了确保 Schema 注册，防止 populate 报错
 const User = require('../models/User');
@@ -7,7 +10,14 @@ const path = require('path');
 // 引入 AI 服务
 const aiService = require('../services/aiService');
 
-// 1. 图片上传处理
+/**
+ * 图片上传处理
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Array<Object>} req.files - 上传的文件列表
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.uploadImages = async (req, res) => {
   if (!req.files || req.files.length === 0) {
     return res.status(400).json({ message: '没有上传文件' });
@@ -17,14 +27,28 @@ exports.uploadImages = async (req, res) => {
   res.json({ urls });
 };
 
-// 2. 发布/保存文章
+/**
+ * 发布/保存文章（模拟实现）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.createPost = async (req, res) => {
   setTimeout(() => {
     res.json({ message: '模拟发布成功', post: { _id: 'new_mock' } });
   }, 500);
 };
 
-// 3. AI 标签生成 (真实接入火山引擎)
+/**
+ * AI 标签生成（真实接入火山引擎）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {string} req.body.content - 文章内容
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.aiLabel = async (req, res) => {
   const { content } = req.body;
 
@@ -48,6 +72,17 @@ exports.aiLabel = async (req, res) => {
   }
 };
 
+/**
+ * 获取文章列表（模拟实现）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.query - 查询参数
+ * @param {number} [req.query.page=1] - 页码
+ * @param {number} [req.query.limit=10] - 每页条数
+ * @param {string} [req.query.sort='createdAt'] - 排序字段
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.getPosts = async (req, res) => {
   try {
     // 获取查询参数

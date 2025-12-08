@@ -1,4 +1,7 @@
+// React核心库导入
 import React, { useState, useEffect, useCallback } from 'react';
+
+// UI组件库导入
 import {
   PullToRefresh,
   InfiniteScroll,
@@ -7,6 +10,8 @@ import {
   Skeleton,
   Modal
 } from 'antd-mobile';
+
+// 图标组件导入
 import {
   HeartOutline,
   HeartFill,
@@ -15,23 +20,50 @@ import {
   AddCircleOutline,
   UserCircleOutline
 } from 'antd-mobile-icons';
+
+// 路由相关导入
 import { useNavigate, useLocation } from 'react-router-dom';
+
+// 服务层导入
 import service, { clearToken, getToken } from '../services/axios';
 import analytics from '../services/analytics';
+
+// 工具库导入
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 
-//启用中文相对时间
+/**
+ * 日期处理配置
+ * 启用中文相对时间格式
+ */
 dayjs.extend(relativeTime);
 dayjs.locale('zh-cn');
+
+/**
+ * 常量定义
+ */
 const BRAND_COLOR = '#a04030';
 const SCROLL_POS_KEY = 'homeScrollPosition';
 
-// ⭐️ 修正 1/5: 缓存 Key 绑定用户 ID
+/**
+ * 点赞缓存管理工具函数
+ */
+
+/**
+ * 获取用户点赞缓存的Key
+ * @param {string} userId - 用户ID
+ * @returns {string} 缓存Key
+ */
 const getCacheKey = (userId) => `likeCache_${userId}`;
 
-// ⭐️ 修正 2/5: 更新点赞缓存函数，要求传入 userId
+/**
+ * 更新点赞状态缓存
+ * @param {string} postId - 帖子ID
+ * @param {boolean} isLiked - 是否点赞
+ * @param {number} likes - 点赞数量
+ * @param {string} userId - 用户ID
+ */
 const updateLikedStateCache = (postId, isLiked, likes, userId) => {
   if (!userId) return;
   const cacheKey = getCacheKey(userId);
@@ -40,7 +72,12 @@ const updateLikedStateCache = (postId, isLiked, likes, userId) => {
   sessionStorage.setItem(cacheKey, JSON.stringify(userCache));
 };
 
-// ⭐️ 修正 3/5: 获取点赞缓存函数，要求传入 userId
+/**
+ * 从缓存获取点赞状态
+ * @param {string} postId - 帖子ID
+ * @param {string} userId - 用户ID
+ * @returns {Object|null} 缓存的点赞状态
+ */
 const getLikedStateFromCache = (postId, userId) => {
   if (!userId) return null;
   const cacheKey = getCacheKey(userId);
@@ -48,34 +85,61 @@ const getLikedStateFromCache = (postId, userId) => {
   return userCache[postId];
 };
 
-//---样式定义(保持不变)---
+/**
+ * 组件样式定义
+ */
 const styles = {
   page: {
     minHeight: '100vh',
   },
   navBar: {
-    position: 'fixed', top: 0, left: 0, right: 0, height: '56px',
-    background: 'rgba(255,255,255,0.98)',
+    position: 'fixed',
+    top: 0,
+    left: 0,
+    right: 0,
+    height: '56px',
+    background: 'rgba(255, 255, 255, 0.98)',
     backdropFilter: 'blur(10px)',
-    display: 'flex', alignItems: 'center',
+    display: 'flex',
+    alignItems: 'center',
     zIndex: 1000,
-    borderBottom: '1px solid#f5f5f5',
+    borderBottom: '1px solid #f5f5f5',
   },
   navContent: {
     width: '100%',
     padding: '0 20px',
-    display: 'flex', justifyContent: 'space-between', alignItems: 'center'
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center',
   },
   navLogo: {
-    fontFamily: '"Playfair Display",serif',
-    fontSize: '24px', fontWeight: '700', color: '#000', letterSpacing: '-0.5px'
+    fontFamily: '"Playfair Display", serif',
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#000',
+    letterSpacing: '-0.5px',
   },
   userArea: {
-    display: 'flex', alignItems: 'center', gap: '8px', padding: '4px 10px',
-    borderRadius: '20px', background: '#fff', border: '1px solid#eee', cursor: 'pointer',
+    display: 'flex',
+    alignItems: 'center',
+    gap: '8px',
+    padding: '4px 10px',
+    borderRadius: '20px',
+    background: '#fff',
+    border: '1px solid #eee',
+    cursor: 'pointer',
   },
-  userAvatarSmall: { width: '24px', height: '24px', borderRadius: '50%', objectFit: 'cover' },
-  userNameSmall: { fontSize: '13px', color: '#333', fontWeight: '500' },
+  userAvatarSmall: {
+    width: '24px',
+    height: '24px',
+    borderRadius: '50%',
+    objectFit: 'cover',
+  },
+  userNameSmall: {
+    fontSize: '13px',
+    color: '#333',
+    fontWeight: '500',
+  },
   mainContainer: {
     width: '100%',
     margin: 0,
@@ -87,59 +151,98 @@ const styles = {
     margin: '16px',
     padding: '20px',
     borderRadius: '12px',
-    boxShadow: '0 4px 12px rgba(160,64,48,0.05)',
+    boxShadow: '0 4px 12px rgba(160, 64, 48, 0.05)',
     textAlign: 'left',
     position: 'relative',
   },
   header: {
-    display: 'flex', alignItems: 'center', marginBottom: '12px',
-    justifyContent: 'flex-start'
+    display: 'flex',
+    alignItems: 'center',
+    marginBottom: '12px',
+    justifyContent: 'flex-start',
   },
   avatar: {
-    width: '40px', height: '40px', borderRadius: '50%', marginRight: '12px',
-    objectFit: 'cover', border: '1px solid#f5f5f5'
+    width: '40px',
+    height: '40px',
+    borderRadius: '50%',
+    marginRight: '12px',
+    objectFit: 'cover',
+    border: '1px solid #f5f5f5',
   },
   headerInfo: {
-    display: 'flex', flexDirection: 'column', alignItems: 'flex-start'
+    display: 'flex',
+    flexDirection: 'column',
+    alignItems: 'flex-start',
   },
-  nickname: { fontSize: '15px', fontWeight: '600', color: '#222', lineHeight: '1.2' },
-  //修复1:日期使用相对时间
-  time: { fontSize: '12px', color: '#999', marginTop: '3px' },
+  nickname: {
+    fontSize: '15px',
+    fontWeight: '600',
+    color: '#222',
+    lineHeight: '1.2',
+  },
+  time: {
+    fontSize: '12px',
+    color: '#999',
+    marginTop: '3px',
+  },
   postTitle: {
     fontSize: '19px',
     fontWeight: '800',
     color: '#111',
     marginBottom: '12px',
     lineHeight: '1.4',
-    fontFamily: '"Playfair Display",serif',
+    fontFamily: '"Playfair Display", serif',
     textAlign: 'left',
   },
   footer: {
-    display: 'flex', alignItems: 'center', gap: '24px',
-    marginTop: '16px', paddingTop: '16px',
-    borderTop: '1px solid#f9f9f9'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '24px',
+    marginTop: '16px',
+    paddingTop: '16px',
+    borderTop: '1px solid #f9f9f9',
   },
   actionBtn: {
-    display: 'flex', alignItems: 'center', gap: '6px',
-    fontSize: '14px', color: '#555',
-    background: 'none', border: 'none', cursor: 'pointer',
-    padding: 0, transition: 'color 0.2s'
+    display: 'flex',
+    alignItems: 'center',
+    gap: '6px',
+    fontSize: '14px',
+    color: '#555',
+    background: 'none',
+    border: 'none',
+    cursor: 'pointer',
+    padding: 0,
+    transition: 'color 0.2s',
   },
   fab: {
-    position: 'fixed', bottom: '40px', right: '30px',
-    width: '56px', height: '56px',
+    position: 'fixed',
+    bottom: '40px',
+    right: '30px',
+    width: '56px',
+    height: '56px',
     borderRadius: '50%',
     background: 'var(--c-terra)',
     color: '#fff',
-    display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: '28px',
-    boxShadow: '0 8px 24px rgba(0,0,0,0.2)',
-    zIndex: 100, cursor: 'pointer'
+    display: 'flex',
+    alignItems: 'center',
+    justifyContent: 'center',
+    fontSize: '28px',
+    boxShadow: '0 8px 24px rgba(0, 0, 0, 0.2)',
+    zIndex: 100,
+    cursor: 'pointer',
   },
   expandBtn: {
-    color: BRAND_COLOR, fontWeight: '600', cursor: 'pointer', marginTop: '10px', display: 'inline-block', fontSize: '14px'
-  }
+    color: BRAND_COLOR,
+    fontWeight: '600',
+    cursor: 'pointer',
+    marginTop: '10px',
+    display: 'inline-block',
+    fontSize: '14px',
+  },
 };
-//---注入全局CSS(保持不变)---
+/**
+ * 全局样式组件
+ */
 const GlobalStyles = () => (
   <style>{`
 :root{--c-terra:${BRAND_COLOR};}
@@ -171,7 +274,12 @@ font-style:italic;
 }
 `}</style>
 );
-//---图片网格组件(保持不变)---
+/**
+ * 图片网格组件
+ * @param {Object} props - 组件属性
+ * @param {string[]} props.images - 图片URL数组
+ * @returns {JSX.Element|null} 图片网格元素
+ */
 const ImageGrid = ({ images }) => {
   if (!images || images.length === 0) return null;
   const count = images.length;
@@ -196,8 +304,16 @@ const ImageGrid = ({ images }) => {
   );
 };
 
-//---帖子卡片组件---
-// ⭐️ 修正 4/5: PostCard 接收 userInfo
+/**
+ * 帖子卡片组件
+ * @param {Object} props - 组件属性
+ * @param {Object} props.post - 帖子数据
+ * @param {Function} props.onAction - 动作回调函数
+ * @param {Function} props.onClick - 点击回调函数
+ * @param {boolean} props.isLoggedIn - 是否已登录
+ * @param {Object} props.userInfo - 用户信息
+ * @returns {JSX.Element} 帖子卡片元素
+ */
 const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
   const [isExpanded, setIsExpanded] = useState(false);
   const [menuVisible, setMenuVisible] = useState(false);
@@ -430,15 +546,24 @@ const PostCard = ({ post, onAction, onClick, isLoggedIn, userInfo }) => {
   );
 };
 
-//---主页面---
+/**
+ * 首页组件
+ * @param {Object} props - 组件属性
+ * @param {boolean} props.isHomeRoute - 是否是首页路由
+ * @returns {JSX.Element} 首页元素
+ */
 function Home({ isHomeRoute }) {
+  // 路由相关
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 数据状态
   const [data, setData] = useState([]);
   const [hasMore, setHasMore] = useState(true);
   const [page, setPage] = useState(1);
   const [isFirstLoading, setIsFirstLoading] = useState(true);
   const [userInfo, setUserInfo] = useState(null);
+
   // 下拉菜单状态
   const [menuVisible, setMenuVisible] = useState(false);
   const [selectedPost, setSelectedPost] = useState(null);

@@ -1,12 +1,18 @@
-import React, { useState, useEffect, useRef, useCallback } from 'react';
+// 导入React核心模块
+import React, { useState, useEffect, useRef } from 'react';
+// 导入富文本编辑器
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input, Modal } from 'antd-mobile';
+// 导入Ant Design Mobile组件
+import { ImageUploader, Toast, Input, Modal } from 'antd-mobile';
+// 导入路由相关组件
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CompassOutline } from 'antd-mobile-icons';
+// 导入API服务
 import service from '../services/axios';
 
-// --- 样式定义 ---
+/**
+ * 组件样式定义
+ */
 const styles = {
   container: {
     minHeight: '100vh',
@@ -19,7 +25,7 @@ const styles = {
     left: 0,
     right: 0,
     height: '56px',
-    background: 'rgba(255,255,255,0.98)',
+    background: 'rgba(255, 255, 255, 0.98)',
     backdropFilter: 'blur(10px)',
     display: 'flex',
     alignItems: 'center',
@@ -31,16 +37,16 @@ const styles = {
     padding: '0 20px',
     display: 'flex',
     justifyContent: 'space-between',
-    alignItems: 'center'
+    alignItems: 'center',
   },
   navLogo: {
-    fontFamily: '"Playfair Display",serif',
+    fontFamily: '"Playfair Display", serif',
     fontSize: '24px',
     fontWeight: '700',
     color: '#000',
     letterSpacing: '-0.5px',
     flex: 1,
-    textAlign: 'center'
+    textAlign: 'center',
   },
   backButton: {
     fontSize: '24px',
@@ -60,7 +66,6 @@ const styles = {
     borderRadius: '12px',
     boxShadow: '0 4px 12px rgba(160, 64, 48, 0.05)',
   },
-  // 霸气标题区域
   titleWrapper: {
     marginBottom: '24px',
     borderBottom: '2px solid #F5F5F5',
@@ -77,30 +82,6 @@ const styles = {
     minHeight: '250px',
     fontFamily: 'var(--font-sans)',
   },
-  aiSection: {
-    marginTop: '30px',
-    paddingTop: '20px',
-    borderTop: '1px dashed #E0E0E0',
-    display: 'flex',
-    flexDirection: 'column',
-    gap: '12px',
-  },
-  aiBtn: {
-    display: 'inline-flex',
-    alignItems: 'center',
-    gap: '6px',
-    fontSize: '14px',
-    color: 'var(--c-terra)',
-    background: 'transparent',
-    border: '1px solid var(--c-terra)',
-    borderRadius: '20px',
-    padding: '6px 16px',
-    width: 'fit-content',
-    cursor: 'pointer',
-    transition: 'all 0.3s',
-  },
-
-  // 发布按钮样式
   publishBtn: {
     fontSize: '14px',
     fontWeight: '500',
@@ -110,71 +91,55 @@ const styles = {
     border: 'none',
     color: '#fff',
   },
-  // 自动保存提示样式
-  autoSaveHint: {
-    fontSize: '12px',
-    color: '#999',
-    marginTop: '16px',
-    textAlign: 'center',
-    paddingBottom: '20px',
-  }
 };
 
-// --- Quill 配置 ---
+/**
+ * Quill富文本编辑器配置
+ */
 const quillModules = {
   toolbar: [
-    [{ 'size': ['small', false, 'large', 'huge'] }],
+    [{ size: ['small', false, 'large', 'huge'] }],
     ['bold', 'italic', 'underline', 'strike'],
-    [{ 'color': [] }, { 'background': [] }],
-    [{ 'align': [] }],
-    [{ 'list': 'ordered' }, { 'list': 'bullet' }],
+    [{ color: [] }, { background: [] }],
+    [{ align: [] }],
+    [{ list: 'ordered' }, { list: 'bullet' }],
     ['blockquote', 'link'],
     ['clean'],
   ],
 };
 
+/**
+ * CreatePost 组件
+ * 用于创建和编辑帖子的富文本编辑器页面
+ */
 const CreatePost = () => {
+  // 路由相关钩子
   const navigate = useNavigate();
   const location = useLocation();
+
+  // 组件状态管理
   const [title, setTitle] = useState('');
   const [content, setContent] = useState('');
   const [fileList, setFileList] = useState([]);
   const [lastSaved, setLastSaved] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
-  const isRestoring = useRef(false);
-  const autoSaveTimerRef = useRef(null);
-  const cloudSyncFailed = useRef(false);
-  // ReactQuill 引用，用于解决 findDOMNode 警告
-  const quillRef = useRef(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
 
   // 编辑模式相关状态
   const isEditMode = location.state?.isEdit || false;
   const editingPost = location.state?.post || null;
-  const [isSubmitting, setIsSubmitting] = useState(false);
 
-  // 加载编辑数据
-  useEffect(() => {
-    if (isEditMode && editingPost) {
-      // 延迟一下确保组件完全挂载
-      setTimeout(() => {
-        setTitle(editingPost.title || '');
-        setContent(editingPost.content || '');
+  // 引用管理
+  const isRestoring = useRef(false);
+  const autoSaveTimerRef = useRef(null);
+  const cloudSyncFailed = useRef(false);
+  const modalShown = useRef(false); // 用于标记弹窗是否已显示
+  const quillRef = useRef(null); // ReactQuill引用，用于解决findDOMNode警告
 
-        // 转换图片数据格式
-        if (editingPost.images && editingPost.images.length > 0) {
-          const formattedImages = editingPost.images.map(url => ({
-            url,
-            status: 'done'
-          }));
-          setFileList(formattedImages);
-        }
-      }, 100);
-    }
-  }, [isEditMode, editingPost]);
-
-
-
-  // --- 获取当前用户的专属草稿 Key ---
+  /**
+   * 获取当前用户的专属草稿Key
+   * @returns {string} 草稿存储的localStorage键名
+   */
   const getDraftKey = () => {
     try {
       const userStr = localStorage.getItem('userInfo');
@@ -186,8 +151,8 @@ const CreatePost = () => {
         }
         return `post_draft_${uid}`;
       }
-    } catch (e) {
-      console.error('读取用户信息失败', e);
+    } catch (error) {
+      console.error('读取用户信息失败', error);
     }
     if (isEditMode && editingPost) {
       return `post_draft_guest_edit_${editingPost._id}`;
@@ -195,7 +160,31 @@ const CreatePost = () => {
     return 'post_draft_guest';
   };
 
-  // 1. 汉化工具栏提示
+  /**
+   * 加载编辑数据（仅在编辑模式下）
+   */
+  useEffect(() => {
+    if (isEditMode && editingPost) {
+      // 延迟确保组件完全挂载
+      setTimeout(() => {
+        setTitle(editingPost.title || '');
+        setContent(editingPost.content || '');
+
+        // 转换图片数据格式
+        if (editingPost.images && editingPost.images.length > 0) {
+          const formattedImages = editingPost.images.map(url => ({
+            url,
+            status: 'done',
+          }));
+          setFileList(formattedImages);
+        }
+      }, 100);
+    }
+  }, [isEditMode, editingPost]);
+
+  /**
+   * 汉化工具栏提示
+   */
   useEffect(() => {
     setTimeout(() => {
       const tooltipMap = {
@@ -211,16 +200,23 @@ const CreatePost = () => {
         '.ql-size': '字号大小',
         '.ql-color': '文字颜色',
         '.ql-background': '背景颜色',
-        '.ql-align': '对齐方式'
+        '.ql-align': '对齐方式',
       };
-      Object.keys(tooltipMap).forEach(selector => {
+      Object.keys(tooltipMap).forEach((selector) => {
         const elements = document.querySelectorAll(selector);
-        elements.forEach(el => el.setAttribute('title', tooltipMap[selector]));
+        elements.forEach((el) => el.setAttribute('title', tooltipMap[selector]));
       });
     }, 1000);
   }, []);
 
-  // 显示主题化弹窗（与Home页面一致的样式）
+  /**
+   * 显示主题化弹窗（与Home页面一致的样式）
+   * @param {string} title - 弹窗标题
+   * @param {ReactNode} content - 弹窗内容
+   * @param {Function} onConfirm - 确认回调函数
+   * @param {string} confirmText - 确认按钮文本
+   * @param {Function} onCancel - 取消回调函数
+   */
   const showThemeModal = (title, content, onConfirm, confirmText = '确定', onCancel) => {
     const modal = Modal.show({
       content: (
@@ -256,15 +252,14 @@ const CreatePost = () => {
       bodyStyle: {
         padding: 0,
         backgroundColor: 'transparent',
-        width: '100%'
-      }
+        width: '100%',
+      },
     });
   };
 
-  // 用于标记弹窗是否已显示
-  const modalShown = useRef(false);
-
-  // 恢复草稿
+  /**
+   * 恢复草稿（仅在首次渲染时执行）
+   */
   useEffect(() => {
     // 只在首次渲染时执行
     if (!modalShown.current) {
@@ -286,7 +281,9 @@ const CreatePost = () => {
                 setFileList(data.fileList || []);
                 Toast.show('草稿已恢复');
                 setTimeout(() => { isRestoring.current = false; }, 1000);
-              } catch (e) { console.error(e); }
+              } catch (error) {
+                console.error('恢复草稿失败', error);
+              }
             },
             '继续编辑',
             () => localStorage.removeItem(key)
@@ -297,7 +294,9 @@ const CreatePost = () => {
     }
   }, []);
 
-  // 3. 30秒自动云端保存
+  /**
+   * 30秒自动保存（本地和云端）
+   */
   useEffect(() => {
     if (isRestoring.current || (!title && !content && fileList.length === 0)) return;
 
@@ -309,7 +308,13 @@ const CreatePost = () => {
     autoSaveTimerRef.current = setTimeout(async () => {
       // 保存到本地存储
       const key = getDraftKey();
-      const draftData = { title, content, fileList, updatedAt: Date.now(), cloudSyncFailed: cloudSyncFailed.current };
+      const draftData = {
+        title,
+        content,
+        fileList,
+        updatedAt: Date.now(),
+        cloudSyncFailed: cloudSyncFailed.current
+      };
       localStorage.setItem(key, JSON.stringify(draftData));
       setLastSaved(new Date());
 
@@ -317,9 +322,10 @@ const CreatePost = () => {
       if (isOnline) {
         try {
           const cloudData = {
-            title, content,
+            title,
+            content,
             images: fileList.map(item => item.url).filter(Boolean),
-            updatedAt: Date.now()
+            updatedAt: Date.now(),
           };
           await service.post('/posts/draft', cloudData);
           cloudSyncFailed.current = false;
@@ -339,7 +345,9 @@ const CreatePost = () => {
     };
   }, [title, content, fileList, isOnline]);
 
-  // 4. 监听网络状态变化
+  /**
+   * 监听网络状态变化
+   */
   useEffect(() => {
     const handleOnline = async () => {
       setIsOnline(true);
@@ -353,7 +361,7 @@ const CreatePost = () => {
               title: localDraft.title || title,
               content: localDraft.content || content,
               images: (localDraft.fileList || fileList).map(item => item.url).filter(Boolean),
-              updatedAt: Date.now()
+              updatedAt: Date.now(),
             };
             await service.post('/posts/draft', cloudData);
             cloudSyncFailed.current = false;
@@ -380,7 +388,10 @@ const CreatePost = () => {
     };
   }, [title, content, fileList]);
 
-  // 检查内容是否为空
+  /**
+   * 检查内容是否为空
+   * @returns {boolean} 内容是否为空
+   */
   const isContentEmpty = () => {
     // 检查标题是否为空
     if (title.trim()) return false;
@@ -395,7 +406,9 @@ const CreatePost = () => {
     return true;
   };
 
-  // 5. 退出时保存到云端
+  /**
+   * 退出时保存草稿并返回
+   */
   const handleExit = () => {
     // 如果内容不为空，才保存草稿
     if (!isContentEmpty()) {
@@ -404,20 +417,21 @@ const CreatePost = () => {
       const key = getDraftKey();
       const draftData = { title, content, fileList, updatedAt: Date.now() };
       localStorage.setItem(key, JSON.stringify(draftData));
-
-      // 云端保存只在30秒自动保存时进行，不在退出时进行
-      // 这样可以避免快速退出时的服务器错误
     } else {
       // 内容为空，删除草稿
       const key = getDraftKey();
       localStorage.removeItem(key);
     }
 
-    // 直接返回，不添加延迟
+    // 直接返回
     navigate(-1);
   };
 
-  // 图片上传
+  /**
+   * 图片上传处理函数
+   * @param {File} file - 要上传的图片文件
+   * @returns {Promise<Object>} 包含图片URL的对象
+   */
   const uploadImage = async (file) => {
     const formData = new FormData();
     formData.append('images', file);
@@ -427,24 +441,22 @@ const CreatePost = () => {
       const data = res.data || res;
 
       if (data.urls && data.urls.length > 0) {
-        return { url: data.urls[0] }; // COS 返回的 URL 已经完整
+        return { url: data.urls[0] }; // COS返回的URL已经完整
       }
       throw new Error('上传失败');
-    } catch (e) {
+    } catch (error) {
       Toast.show('图片上传失败');
-      throw e;
+      throw error;
     }
   };
 
-
-
-
-
-
-
-  // 发布或更新帖子
+  /**
+   * 发布或更新帖子
+   */
   const handleSubmit = async () => {
-    if (!content && fileList.length === 0) return Toast.show('内容不能为空');
+    if (!content && fileList.length === 0) {
+      return Toast.show('内容不能为空');
+    }
 
     let finalTitle = title;
     if (!finalTitle) {
@@ -459,28 +471,29 @@ const CreatePost = () => {
         title: finalTitle,
         content,
         images: imageUrls,
-        status: 'published'
+        status: 'published',
       };
 
       if (isEditMode && editingPost) {
         // 编辑模式：使用PUT请求更新帖子
         await service.put(`/posts/${editingPost._id}`, postData);
         Toast.show({ content: '修改保存成功', icon: 'success' });
-        localStorage.removeItem(getDraftKey()); // 编辑模式也清除草稿
       } else {
         // 创建模式：使用POST请求创建新帖子
         await service.post('/posts', postData);
         Toast.show({ content: '发布成功', icon: 'success' });
-        localStorage.removeItem(getDraftKey());
       }
 
-      // 直接返回到首页或帖子详情页，不添加延迟
-      navigate(isEditMode ? '/post/' + editingPost._id : '/');
-    } catch (e) {
-      console.error(e);
+      // 清除草稿
+      localStorage.removeItem(getDraftKey());
+
+      // 跳转到相应页面
+      navigate(isEditMode ? `/post/${editingPost._id}` : '/');
+    } catch (error) {
+      console.error('发布/保存失败:', error);
       Toast.show({
         content: isEditMode ? '保存失败，请重试' : '发布失败，请重试',
-        icon: 'fail'
+        icon: 'fail',
       });
     } finally {
       setIsSubmitting(false);
@@ -509,7 +522,7 @@ const CreatePost = () => {
         display: 'flex',
         justifyContent: 'space-between',
         alignItems: 'center',
-        borderBottom: '1px solid #f5f5f5'
+        borderBottom: '1px solid #f5f5f5',
       }}>
         <span style={{ fontWeight: 'bold', fontSize: '18px', color: 'var(--c-text)' }}>
           {isEditMode ? '编辑帖子' : '撰写新篇'}
@@ -520,25 +533,34 @@ const CreatePost = () => {
           style={{
             ...styles.publishBtn,
             opacity: isSubmitting ? 0.7 : 1,
-            pointerEvents: isSubmitting ? 'none' : 'auto'
+            pointerEvents: isSubmitting ? 'none' : 'auto',
           }}
           onClick={handleSubmit}
           disabled={isSubmitting}
-        >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>
+        >
+          {isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}
+        </button>
       </div>
 
+      {/* 状态信息栏 */}
       <div style={styles.statusBar}>
         {isEditMode && editingPost ? (
           <div style={{ fontSize: '13px', color: '#666' }}>
             发布于 {new Date(editingPost.createdAt).toLocaleString('zh-CN', {
-              year: 'numeric', month: '2-digit', day: '2-digit',
-              hour: '2-digit', minute: '2-digit'
+              year: 'numeric',
+              month: '2-digit',
+              day: '2-digit',
+              hour: '2-digit',
+              minute: '2-digit',
             })}
             {editingPost.updatedAt && editingPost.updatedAt !== editingPost.createdAt && (
               <span style={{ marginLeft: '10px' }}>
                 编辑于 {new Date(editingPost.updatedAt).toLocaleString('zh-CN', {
-                  year: 'numeric', month: '2-digit', day: '2-digit',
-                  hour: '2-digit', minute: '2-digit'
+                  year: 'numeric',
+                  month: '2-digit',
+                  day: '2-digit',
+                  hour: '2-digit',
+                  minute: '2-digit',
                 })}
               </span>
             )}
@@ -548,9 +570,9 @@ const CreatePost = () => {
         )}
       </div>
 
+      {/* 内容编辑区域 */}
       <div style={styles.paperCard}>
-
-        {/* 霸气标题输入框 */}
+        {/* 标题输入框 */}
         <div className="title-wrapper" style={styles.titleWrapper}>
           <Input
             className="title-input"
@@ -561,7 +583,6 @@ const CreatePost = () => {
               '--font-size': '30px',
               '--color': '#1a1a1a',
               padding: '4px 0',
-              // 注意：这里的 fontWeight 对 placeholder 不生效，需要下面的 style 标签配合
               fontWeight: '900',
               fontFamily: 'var(--font-serif)',
             }}
@@ -581,80 +602,82 @@ const CreatePost = () => {
 
         {/* 富文本编辑器 */}
         <div style={styles.editorWrapper}>
-          <style>{`
-            /* ==========================================
-               核心修复：强制覆盖标题 Placeholder 样式
-               ========================================== */
-            /* 1. 针对 antd-mobile 内部的 input 元素 */
-            .title-wrapper .adm-input-element {
-              font-size: 30px !important;
-              font-weight: 900 !important;
-              font-family: var(--font-serif) !important;
-            }
+          <style>
+            {`
+              /* ==========================================
+                 核心修复：强制覆盖标题 Placeholder 样式
+                 ========================================== */
+              /* 1. 针对 antd-mobile 内部的 input 元素 */
+              .title-wrapper .adm-input-element {
+                font-size: 30px !important;
+                font-weight: 900 !important;
+                font-family: var(--font-serif) !important;
+              }
 
-            /* 2. 针对所有浏览器的 placeholder 伪元素 */
-            .title-wrapper .adm-input-element::placeholder {
-              font-size: 30px !important;
-              font-weight: 900 !important;
-              color: #e0e0e0 !important;
-              opacity: 1; /* Firefox 默认透明度不是1 */
-              font-family: var(--font-serif) !important;
-            }
-            
-            /* 兼容 Webkit (Chrome, Safari) */
-            .title-wrapper .adm-input-element::-webkit-input-placeholder {
-              font-size: 30px !important;
-              font-weight: 900 !important;
-              color: #e0e0e0 !important;
-              font-family: var(--font-serif) !important;
-            }
-            
-            /* ==========================================
-               Quill 编辑器样式
-               ========================================== */
-            .ql-toolbar.ql-snow { 
-              border: none !important; 
-              border-bottom: 1px dashed #E0E0E0 !important; 
-              position: sticky;
-              top: 0;
-              background: #fff;
-              z-index: 10;
-              padding: 8px 0;
-            }
-            .ql-container.ql-snow { border: none !important; }
-            
-            .ql-editor { 
-              padding: 16px 0; 
-              font-size: 16px; 
-              line-height: 1.7;
-              min-height: 200px;
-              font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; 
-            }
-            
-            /* 强制加粗样式 */
-            .ql-editor strong { font-weight: 700 !important; color: #000; }
-            
-            .ql-editor blockquote {
-              border-left: 4px solid var(--c-terra);
-              background: #FDF6F5;
-              color: #666;
-              padding: 8px 12px;
-              margin: 10px 0;
-              border-radius: 0 4px 4px 0;
-            }
+              /* 2. 针对所有浏览器的 placeholder 伪元素 */
+              .title-wrapper .adm-input-element::placeholder {
+                font-size: 30px !important;
+                font-weight: 900 !important;
+                color: #e0e0e0 !important;
+                opacity: 1; /* Firefox 默认透明度不是1 */
+                font-family: var(--font-serif) !important;
+              }
+              
+              /* 兼容 Webkit (Chrome, Safari) */
+              .title-wrapper .adm-input-element::-webkit-input-placeholder {
+                font-size: 30px !important;
+                font-weight: 900 !important;
+                color: #e0e0e0 !important;
+                font-family: var(--font-serif) !important;
+              }
+              
+              /* ==========================================
+                 Quill 编辑器样式
+                 ========================================== */
+              .ql-toolbar.ql-snow { 
+                border: none !important; 
+                border-bottom: 1px dashed #E0E0E0 !important; 
+                position: sticky;
+                top: 0;
+                background: #fff;
+                z-index: 10;
+                padding: 8px 0;
+              }
+              .ql-container.ql-snow { border: none !important; }
+              
+              .ql-editor { 
+                padding: 16px 0; 
+                font-size: 16px; 
+                line-height: 1.7;
+                min-height: 200px;
+                font-family: -apple-system, BlinkMacSystemFont, "Helvetica Neue", Helvetica, Arial, sans-serif; 
+              }
+              
+              /* 强制加粗样式 */
+              .ql-editor strong { font-weight: 700 !important; color: #000; }
+              
+              .ql-editor blockquote {
+                border-left: 4px solid var(--c-terra);
+                background: #FDF6F5;
+                color: #666;
+                padding: 8px 12px;
+                margin: 10px 0;
+                border-radius: 0 4px 4px 0;
+              }
 
-            /* 字号下拉菜单美化 */
-            .ql-snow .ql-picker.ql-size .ql-picker-label::before,
-            .ql-snow .ql-picker.ql-size .ql-picker-item::before { content: '默认'; }
-            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
-            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before { content: '小字号'; }
-            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
-            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before { content: '大标题'; font-size: 18px; }
-            .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
-            .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: '超大'; font-size: 22px; }
+              /* 字号下拉菜单美化 */
+              .ql-snow .ql-picker.ql-size .ql-picker-label::before,
+              .ql-snow .ql-picker.ql-size .ql-picker-item::before { content: '默认'; }
+              .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="small"]::before,
+              .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="small"]::before { content: '小字号'; }
+              .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="large"]::before,
+              .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="large"]::before { content: '大标题'; font-size: 18px; }
+              .ql-snow .ql-picker.ql-size .ql-picker-label[data-value="huge"]::before,
+              .ql-snow .ql-picker.ql-size .ql-picker-item[data-value="huge"]::before { content: '超大'; font-size: 22px; }
 
-            .ql-editor.ql-blank::before { color: #BCAAA4; font-style: normal; }
-          `}</style>
+              .ql-editor.ql-blank::before { color: #BCAAA4; font-style: normal; }
+            `}
+          </style>
 
           <ReactQuill
             ref={quillRef}
@@ -666,9 +689,6 @@ const CreatePost = () => {
             bounds="#root"
           />
         </div>
-
-
-
       </div>
     </div>
   );

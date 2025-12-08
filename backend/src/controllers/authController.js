@@ -1,3 +1,7 @@
+/**
+ * 认证控制器
+ * 处理用户注册、登录、验证码发送等认证相关功能
+ */
 const User = require('../models/User');
 const jwt = require('jsonwebtoken');
 const bcrypt = require('bcryptjs');
@@ -7,15 +11,26 @@ const otpManager = require('../utils/otpManager');
 // 密码加密的盐值轮数
 const SALT_ROUNDS = 10;
 
-// 这里的密钥要和中间件里的一致
+// JWT密钥（需与中间件配置一致）
 const JWT_SECRET = process.env.JWT_SECRET || 'your_super_high_end_secret_key_2024';
 
-// 生成随机验证码（6位数）
+/**
+ * 生成随机验证码（6位数）
+ * @returns {string} 6位数字验证码
+ */
 function generateCode() {
   return Math.floor(100000 + Math.random() * 900000).toString();
 }
 
-// 1. 发送验证码 (带安全策略)
+/**
+ * 发送验证码（带安全策略）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {string} req.body.phone - 用户手机号
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.sendCode = async (req, res) => {
   try {
     const { phone } = req.body;
@@ -59,7 +74,18 @@ exports.sendCode = async (req, res) => {
   }
 };
 
-// 2. 用户注册 (带密码)
+/**
+ * 用户注册（带密码）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {string} req.body.phone - 用户手机号
+ * @param {string} req.body.nickname - 用户昵称（可选）
+ * @param {string} req.body.password - 用户密码
+ * @param {string} req.body.code - 验证码
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.register = async (req, res) => {
   try {
     const { phone, nickname, password, code } = req.body;
@@ -132,7 +158,18 @@ exports.register = async (req, res) => {
   }
 };
 
-// 3. 用户登录 (支持两种方式：密码登录和验证码登录)
+/**
+ * 用户登录（支持两种方式：密码登录和验证码登录）
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {string} req.body.phone - 用户手机号
+ * @param {string} req.body.password - 用户密码（密码登录时必填）
+ * @param {string} req.body.code - 验证码（验证码登录时必填）
+ * @param {string} req.body.loginType - 登录方式：'password' 或 'sms'
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.login = async (req, res) => {
   try {
     const { phone, password, code, loginType } = req.body; // loginType: 'password' 或 'sms'
@@ -253,7 +290,15 @@ exports.login = async (req, res) => {
   }
 };
 
-// 3. 刷新 Token
+/**
+ * 刷新Token
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {string} req.body.token - 旧的JWT Token
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 exports.refreshToken = async (req, res) => {
   try {
     const { token: oldToken } = req.body;

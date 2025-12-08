@@ -1,10 +1,22 @@
+/**
+ * 埋点数据路由
+ * 处理埋点数据的批量接收和保存
+ */
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose'); // 导入mongoose以检查连接状态
 const Analytics = require('../models/Analytics');
 const authMiddleware = require('../middleware/authMiddleware'); // 如果需要鉴权
 
-// 批量接收埋点数据
+/**
+ * 批量接收埋点数据
+ * @async
+ * @param {Object} req - Express请求对象
+ * @param {Object} req.body - 请求体
+ * @param {Array<Object>} req.body.events - 埋点事件列表
+ * @param {Object} res - Express响应对象
+ * @returns {Promise<void>}
+ */
 router.post('/batch', async (req, res) => {
   try {
     // 首先检查数据库连接状态

@@ -1,7 +1,14 @@
-// 导入数据库模型，使用MongoDB存储OTP信息，确保锁定状态持久化
+/**
+ * OTP 管理模块
+ * 用于生成、存储和验证手机验证码，包含安全机制（频率限制、失败尝试次数限制、锁定机制）
+ */
+
 const mongoose = require('mongoose');
 
-// 创建OTP记录的Schema
+/**
+ * OTP记录的MongoDB Schema
+ * 用于存储验证码信息及安全状态
+ */
 const otpSchema = new mongoose.Schema({
   phone: { type: String, required: true, unique: true, index: true },
   code: { type: String, required: true },
@@ -16,7 +23,12 @@ const otpSchema = new mongoose.Schema({
 // 设置集合名称并获取模型
 const OtpRecord = mongoose.model('OtpRecord', otpSchema, 'otp_records');
 
-// 自动清理过期记录的辅助函数
+/**
+ * 自动清理过期记录的辅助函数
+ * 定期删除已过期且锁定时间也已过期的记录
+ * @async
+ * @returns {Promise<void>}
+ */
 async function cleanExpiredRecords() {
   try {
     const now = Date.now();
@@ -36,7 +48,13 @@ setInterval(cleanExpiredRecords, 30 * 60 * 1000);
 // 立即执行一次清理
 cleanExpiredRecords();
 
-// 添加调试辅助函数
+/**
+ * 调试辅助函数，记录OTP存储状态
+ * @async
+ * @param {string|null} phone - 手机号，null表示获取整体状态
+ * @param {string} action - 操作描述
+ * @returns {Promise<void>}
+ */
 async function logStoreState(phone, action) {
   try {
     if (phone) {
@@ -57,6 +75,12 @@ const MAX_ATTEMPTS = 5;                   // 最大尝试次数
 
 module.exports = {
   // 检查是否允许发送验证码
+  /**
+   * 检查是否允许发送验证码
+   * @async
+   * @param {string} phone - 手机号
+   * @returns {Promise<{allowed: boolean, msg?: string}>} - 允许发送返回{allowed: true}，否则返回{allowed: false, msg: 错误信息}
+   */
   canSendOtp: async (phone) => {
     await logStoreState(phone, '检查是否允许发送验证码');
     const now = Date.now();
@@ -95,6 +119,13 @@ module.exports = {
   },
 
   // 保存验证码
+  /**
+   * 保存验证码到数据库
+   * @async
+   * @param {string} phone - 手机号
+   * @param {string} code - 验证码
+   * @returns {Promise<void>}
+   */
   saveOtp: async (phone, code) => {
     console.log(`[OTP调试] 保存验证码 ${code} 到手机号 ${phone}`);
     const now = Date.now();
@@ -125,6 +156,13 @@ module.exports = {
   },
 
   // 验证验证码
+  /**
+   * 验证验证码
+   * @async
+   * @param {string} phone - 手机号
+   * @param {string} inputCode - 用户输入的验证码
+   * @returns {Promise<{valid: boolean, msg?: string}>} - 验证成功返回{valid: true}，否则返回{valid: false, msg: 错误信息}
+   */
   verifyOtp: async (phone, inputCode) => {
     console.log(`[OTP调试] 验证手机号 ${phone} 的验证码 ${inputCode}`);
     await logStoreState(phone, '验证前');

@@ -1,5 +1,9 @@
+/**
+ * 后端主入口文件
+ * 负责初始化Express应用、配置中间件、挂载路由和启动服务器
+ */
 require('dotenv').config();
-const mongoose = require('mongoose');
+const { connectDB, mongoose } = require('./config/db');
 const cors = require('cors');
 const express = require('express');
 const path = require('path');
@@ -26,16 +30,7 @@ app.use(express.json({ limit: '50mb' }));
 app.use(express.urlencoded({ limit: '50mb', extended: true }));
 
 // --- MongoDB 连接 ---
-mongoose.connect(process.env.MONGO_URI, {
-  connectTimeoutMS: 30000,
-  socketTimeoutMS: 45000,
-  retryWrites: true,
-  autoIndex: true,
-  serverSelectionTimeoutMS: 30000,
-  family: 4
-})
-  .then(() => console.log('✅ MongoDB 已连接'))
-  .catch(err => console.error('❌ 数据库连接失败:', err));
+connectDB();
 
 // --- 腾讯云 COS 配置 ---
 const cos = new COS({

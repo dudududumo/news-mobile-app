@@ -1,8 +1,10 @@
-# 新闻资讯移动端应用
+# citydaily-news-app新闻资讯移动端应用
 
 ## 项目简介
 
 这是一个基于React与Node.js开发、前后端分离的移动端新闻资讯应用，支持手机号验证码注册登录、富文本内容发布、Feed流无限滚动、点赞评论互动及AI智能标签等核心功能。前端采用React + Ant Design Mobile构建响应式界面，后端以Node.js + Express + MongoDB提供RESTful API，整体技术栈现代化，兼具良好用户体验与横向扩展能力。
+
+本项目已完成全面的代码规范优化，包括统一的命名规范、完整的注释文档、一致的错误处理机制和安全的配置管理。
 
 ## 目录
 
@@ -13,12 +15,15 @@
   - [Feed流](#feed流)
   - [内容详情页](#内容详情页)
   - [互动功能](#互动功能)
+  - [埋点分析功能](#埋点分析功能)
 - [功能实现详情](#功能实现详情)
+  - [系统功能实现](#系统功能实现)
   - [用户系统功能实现](#用户系统功能实现)
   - [内容管理功能实现](#内容管理功能实现)
   - [Feed流功能实现](#feed流功能实现)
   - [内容详情页功能实现](#内容详情页功能实现)
   - [互动功能实现](#互动功能实现)
+  - [埋点分析功能实现](#埋点分析功能实现)
 - [技术栈](#技术栈)
   - [前端](#前端)
   - [后端](#后端)
@@ -37,6 +42,24 @@
   - [1. 用户认证模块](#1-用户认证模块)
   - [2. 内容管理模块](#2-内容管理模块)
   - [3. 互动功能模块](#3-互动功能模块)
+  - [4. 用户相关模块](#4-用户相关模块)
+  - [5. 标签相关模块](#5-标签相关模块)
+  - [6. 埋点分析模块](#6-埋点分析模块)
+  - [7. 系统管理模块](#7-系统管理模块)
+- [数据库设计](#数据库设计)
+  - [User模型](#user模型)
+  - [Post模型](#post模型)
+  - [评论子文档结构](#评论子文档结构)
+  - [Analytics模型](#analytics模型)
+  - [验证码记录模型（OtpRecord）](#验证码记录模型otprecord)
+- [开发说明](#开发说明)
+
+## RESTful接口设计
+  - [1. 用户认证模块](#1-用户认证模块)
+  - [2. 内容管理模块](#2-内容管理模块)
+  - [3. 互动功能模块](#3-互动功能模块)
+  - [4. 埋点分析模块](#4-埋点分析模块)
+  - [5. 系统功能模块](#5-系统功能模块)
 
 ## 功能特性
 
@@ -49,8 +72,10 @@
 ### 内容管理
 - **文章发布**：支持富文本编辑，支持多图上传
 - **文章编辑**：支持文章草稿保存和后续编辑
-- **AI标签生成**：自动根据文章内容生成相关标签
+- **草稿功能**：支持本地（localStorage）和云端双重草稿保存，30秒自动保存机制，防止内容丢失
+- **AI标签生成**：自动根据文章内容异步生成3-5个相关标签，集成火山方舟AI服务，支持本地兜底策略（默认标签：日常、生活等），标签生成过程中显示"生成中"状态
 - **文章删除**：用户可删除自己发布的文章
+- **图片存储**：使用腾讯云COS进行图片存储，支持多图上传和管理
 
 ### Feed流
 - **文章列表**：无限滚动加载，支持下拉刷新
@@ -73,7 +98,23 @@
 - **评论删除**：用户可删除自己的评论
 - **标签互动**：支持点击标签查看相关文章
 
+### 埋点分析功能
+- **前端埋点**：集成埋点SDK，支持页面浏览、用户行为等事件的采集
+- **后端埋点接收**：提供批量接收埋点数据的API接口
+- **数据存储**：将埋点数据存储到MongoDB数据库
+- **数据安全**：实现请求参数校验和错误处理机制
+- **性能优化**：限制批量插入数量，支持部分插入成功
+
 ## 功能实现详情
+
+### 系统功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **健康检查端点** | 后端实现 `/health` 接口，返回服务状态和时间戳；用于监控服务运行情况；支持跨域请求 | GET `/health` |
+| **跨域配置** | 后端配置CORS中间件，允许指定域名的跨域请求；支持多种HTTP方法和自定义请求头；开启credentials支持 | 无特定API，全局中间件 |
+| **请求体大小限制** | 后端设置Express请求体大小限制（50MB），支持大文件上传和富文本内容；防止请求体过大导致系统崩溃 | 无特定API，全局中间件 |
+| **错误处理中间件** | 后端实现全局错误处理中间件，统一处理系统错误；返回标准化的错误响应格式；记录错误日志 | 无特定API，全局中间件 |
 
 ### 用户系统功能实现
 
@@ -83,10 +124,11 @@
 | **密码登录** | 前端实现表单验证（密码长度8-20位）；后端使用bcrypt验证密码，生成JWT令牌；支持记住密码功能 | POST `/api/auth/login` |
 | **验证码登录** | 前端实现验证码倒计时功能（60秒）和手机号格式验证；后端验证验证码有效性（5分钟过期），生成JWT令牌 | POST `/api/auth/login` |
 | **JWT认证** | 前端使用localStorage存储token和用户信息；axios拦截器自动添加Authorization头；后端验证JWT签名和过期时间 | 中间件应用于受保护路由 |
+| **Token自动刷新** | 前端实现Token自动刷新机制，在Token过期前5分钟自动请求刷新；使用请求队列管理等待刷新的请求；支持并发请求处理 | POST `/api/auth/refresh` |
 | **Token刷新** | 后端实现token刷新逻辑，生成新token并保持用户登录状态；前端在请求失败时自动尝试刷新token | POST `/api/auth/refresh` |
 | **验证码发送** | 前端实现手机号格式验证和发送频率限制；后端生成6位数字验证码，设置5分钟过期，支持开发环境固定验证码 | POST `/api/auth/send-code` |
 | **登录状态保持** | 使用localStorage存储token和用户信息，应用启动时自动恢复登录状态；实现登出功能清除所有存储数据 | 无特定API，使用浏览器存储 |
-| **路由保护** | 基于React Router实现路由守卫，未登录用户访问受保护页面时自动重定向至登录页 | 无特定API，前端路由实现 |
+| **路由保护** | 基于React Router实现ProtectedRoute路由守卫组件，未登录用户访问受保护页面时自动重定向至登录页；支持嵌套路由保护 | 无特定API，前端路由实现 |
 | **密码强度验证** | 前端实现密码强度检测（包含数字和字母，长度8-20位）；提供实时密码强度反馈 | 无特定API，前端表单验证 |
 | **用户信息存储** | 登录成功后将用户信息缓存在localStorage中，避免频繁请求用户数据；登出时清除所有本地缓存 | 无特定API，使用localStorage |
 
@@ -97,12 +139,16 @@
 | **短图文发布** | 支持文本内容和多张图片混合发布；实现内容预览功能；包含发布状态管理和错误提示 | POST `/api/posts` |
 | **富文本编辑器** | 集成ReactQuill编辑器，自定义工具栏配置（粗体、斜体、列表、引用等）；支持中文界面；实现内容样式自定义 | 无特定API，前端组件实现 |
 | **图片上传** | 支持多图上传功能，限制单张图片大小（5MB）；实现图片预览和删除功能；上传进度显示；后端使用multer处理文件存储 | POST `/api/posts/upload` |
-| **AI标签生成** | 基于文章内容自动生成相关标签（最多5个）；实现本地兜底策略，当AI服务不可用时使用预设标签；支持手动修改生成的标签 | POST `/api/posts/ai-label` |
-| **草稿自动保存** | 编辑器内容自动保存至localStorage；页面刷新或重新进入时恢复草稿；发布成功后清除草稿 | 无特定API，使用localStorage |
+| **AI标签生成** | 基于文章内容异步生成3-5个相关标签；生成过程中显示"生成中"状态；实现本地兜底策略，当AI服务不可用时使用预设标签；支持手动修改生成的标签；集成火山方舟AI服务 | POST `/api/posts/ai-label` |
+| **草稿自动保存** | 支持本地（localStorage）和云端双重草稿保存；30秒自动保存机制；页面刷新或重新进入时恢复草稿；发布成功后清除草稿 | POST `/api/posts/draft` |
 | **话题挑战跳转** | 支持从相关文章或标签页跳转至创建页面，并自动填充话题内容；提供创作引导功能 | 无特定API，导航参数传递 |
 | **OpenAI集成** | 后端配置OpenAI客户端，使用API Key进行认证；实现请求超时和错误处理机制；支持模型参数配置 | 无特定API，后端服务调用 |
 | **文件存储管理** | 后端使用multer配置文件上传路径和命名规则；支持文件类型验证（仅图片格式）；实现静态文件服务提供访问 | GET `/uploads/{filename}` |
+| **腾讯云COS集成** | 后端配置腾讯云COS客户端，使用SecretId和SecretKey进行认证；实现图片上传到云存储，返回公网访问URL；支持文件类型和大小验证 | POST `/api/posts/upload` |
+| **火山方舟AI集成** | 后端配置火山方舟AI客户端，使用API Key进行认证；实现AI标签生成功能，支持模型参数配置；添加请求超时和错误处理机制 | 无特定API，后端服务调用 |
 | **文章编辑** | 实现文章内容和图片的修改功能；支持富文本编辑和多图上传；编辑页面自动填充原有内容；实现保存和取消操作；添加操作确认和错误提示 | PUT `/api/posts/:id` |
+| **保存草稿** | 支持创建新草稿和更新现有草稿；设置文章status为'draft'；记录编辑时间；支持富文本内容和图片保存 | POST `/api/posts/draft` |
+| **获取草稿列表** | 根据用户ID获取草稿列表；按编辑时间倒序排序；仅返回status='draft'的文章 | GET `/api/posts/drafts` |
 | **文章删除** | 实现文章的删除功能；点击三点按钮打开操作菜单，选择删除后显示确认模态框；确认后调用API删除文章并更新列表；添加操作结果提示 | DELETE `/api/posts/:id` |
 
 ### Feed流功能实现
@@ -153,6 +199,17 @@
 | **时间格式化显示** | 文章发布时间使用 `YYYY-MM-DD` 格式，评论时间使用相对时间（如"3分钟前"）；使用 `dayjs` 库进行时间处理 | 无特定API，前端 `dayjs` 库实现 |
 | **评论删除** | 实现评论的删除功能；评论右下角显示删除按钮（仅作者可见）；点击后显示确认模态框；确认后调用API删除评论并更新列表；添加操作结果提示 | DELETE `/api/posts/:id/comments/:commentId` |
 
+### 埋点分析功能实现
+
+| 功能 | 实现方式/技术细节 | 接口说明 |
+|------|-----------------|--------|
+| **埋点数据批量接收** | 后端实现 `/api/analytics/batch` 接口，支持批量接收前端埋点数据；实现数据库连接状态检查，确保数据安全存储；限制每次插入数量以提高稳定性 | POST `/api/analytics/batch` |
+| **数据格式转换** | 前端埋点事件数据自动转换为后端存储格式；支持自定义事件参数和元数据；实现数据完整性验证 | 无特定API，后端数据处理 |
+| **数据库存储优化** | 使用 `ordered: false` 选项允许部分插入成功；实现错误处理和日志记录；支持异步插入以提高性能 | 无特定API，MongoDB存储实现 |
+| **前端埋点集成** | 前端 `analytics.js` 服务封装埋点发送功能；支持页面浏览、用户行为等事件的采集；实现请求重试和错误处理机制 | 无特定API，前端服务实现 |
+| **数据安全防护** | 实现请求参数校验，确保数据格式正确；添加错误处理机制，避免系统崩溃；限制请求频率以防止滥用 | 无特定API，后端中间件实现 |
+| **数据库连接检查** | 在存储埋点数据前检查MongoDB连接状态；连接失败时返回警告但不影响前端功能；实现连接状态日志记录 | 无特定API，后端数据库检查 |
+
 ## 技术栈
 
 ### 前端
@@ -165,6 +222,7 @@
 | HTTP请求 | axios | 1.6.2 | API请求 |
 | 编辑器 | react-quill | 2.0.0 | 富文本编辑 |
 | 日期处理 | dayjs | 1.11.10 | 时间格式化 |
+| 图片查看 | antd-mobile ImageViewer | 5.32.2 | 图片预览和查看 |
 
 ### 后端
 | 类别 | 技术/库 | 版本 | 用途 |
@@ -175,7 +233,10 @@
 | 认证 | jsonwebtoken | 9.0.2 | JWT令牌生成与验证 |
 | 密码加密 | bcryptjs | 2.4.3 | 密码安全存储 |
 | 文件上传 | multer | 1.4.5-lts.1 | 文件处理 |
-| AI服务 | openai | - | 智能标签生成 |
+| AI服务 | openai | - | 智能标签生成（火山方舟兼容） |
+| 云存储 | cos-nodejs-sdk-v5 | - | 腾讯云COS图片存储 |
+| 跨域支持 | cors | - | 处理跨域请求 |
+| 健康检查 | 自定义中间件 | - | 服务健康状态检查 |
 
 ### 开发工具
 | 类别 | 技术/库 | 版本 | 用途 |
@@ -270,29 +331,49 @@ NODE_ENV=production
 ## 项目结构
 
 ```
-news-mobile-app/
-├── frontend/               # 前端应用
-│   ├── public/             # 静态资源
-│   ├── src/                # 源代码
-│   │   ├── components/     # 公共组件
-│   │   ├── pages/          # 页面组件
-│   │   ├── routes/         # 路由配置
-│   │   ├── stores/         # 状态管理
-│   │   ├── utils/          # 工具函数
-│   │   ├── App.jsx         # 根组件
-│   │   └── main.jsx        # 入口文件
-│   ├── index.html          # HTML模板
-│   └── package.json        # 前端依赖
+citydaily-news-app/
+├── .gitignore              # Git忽略配置
+├── .vscode/                # VS Code编辑器配置
+├── README.md               # 项目说明文档
+├── assets/                 # 项目资源文件
 ├── backend/                # 后端服务
+│   ├── .gitignore          # Git忽略配置
+│   ├── clearPosts.js       # 清理帖子脚本
+│   ├── package-lock.json   # 依赖版本锁定
+│   ├── package.json        # 后端依赖
 │   ├── src/                # 源代码
+│   │   ├── config/         # 配置文件
 │   │   ├── controllers/    # 控制器
+│   │   ├── index.js        # 入口文件
+│   │   ├── middleware/     # 中间件
 │   │   ├── models/         # 数据模型
 │   │   ├── routes/         # 路由配置
-│   │   ├── middleware/     # 中间件
-│   │   ├── utils/          # 工具函数
-│   │   └── index.js        # 入口文件
-│   ├── uploads/            # 文件上传目录
-│   └── package.json        # 后端依赖
+│   │   ├── seed.js         # 数据种子脚本
+│   │   ├── services/       # 服务层
+│   │   └── utils/          # 工具函数
+│   ├── viewPosts.js        # 查看帖子脚本
+│   └── zeabur.json         # Zeabur部署配置
+├── frontend/               # 前端应用
+│   ├── .env                # 环境变量
+│   ├── .gitignore          # Git忽略配置
+│   ├── eslint.config.js    # ESLint配置
+│   ├── index.html          # HTML模板
+│   ├── package-lock.json   # 依赖版本锁定
+│   ├── package.json        # 前端依赖
+│   ├── public/             # 静态资源
+│   ├── src/                # 源代码
+│   │   ├── App.css         # 根组件样式
+│   │   ├── App.jsx         # 根组件
+│   │   ├── assets/         # 前端资源
+│   │   ├── index.css       # 全局样式
+│   │   ├── main.jsx        # 入口文件
+│   │   ├── pages/          # 页面组件
+│   │   ├── services/       # 服务层
+│   │   └── utils/          # 工具函数
+│   └── vite.config.js      # Vite配置
+├── package-lock.json       # 根目录依赖版本锁定
+├── package.json            # 根目录依赖
+└── vercel.json             # Vercel部署配置
 ```
 
 ## 快速开始
@@ -337,10 +418,10 @@ news-mobile-app/
    VOLC_MODEL_ID=doubao-seed-1-6-251015
 
    # 腾讯云COS配置
-   COS_SECRET_ID=your_tencent_cloud_secret_id
-   COS_SECRET_KEY=your_tencent_cloud_secret_key
-   COS_BUCKET=news-mobile-app-1381305971
-   COS_REGION=your_cos_region
+    COS_SECRET_ID=your_tencent_cloud_secret_id
+    COS_SECRET_KEY=your_tencent_cloud_secret_key
+    COS_BUCKET=news-mobile-app-1381305971
+    COS_REGION=your_cos_region
    
    # 开发环境标识
    NODE_ENV=development
@@ -398,6 +479,8 @@ news-mobile-app/
 | DELETE | `/api/posts/:id` | 删除文章 | id: String (文章ID) | `{ success: Boolean, message: String }` |
 | POST | `/api/posts/upload` | 上传图片 | file: File (图片文件) | `{ url: String, filename: String }` |
 | POST | `/api/posts/ai-label` | AI生成标签 | content: String (文章内容) | `{ tags: Array<String> }` |
+| POST | `/api/posts/draft` | 保存草稿 | title: String (标题)<br>content: String (内容)<br>images: Array (图片URL数组)<br>tags: Array (标签数组) | `{ _id: String, title: String, content: String, images: Array, tags: Array, status: 'draft', editAt: String }` |
+| GET | `/api/posts/drafts` | 获取草稿列表 | page: Number (页码，默认1)<br>limit: Number (每页数量，默认10) | `{ list: Array, hasMore: Boolean, total: Number }` |
 
 ### 3. 互动功能模块
 
@@ -476,6 +559,7 @@ news-mobile-app/
 | `nickname` | String | 用户昵称 | "新用户" | - |
 | `avatar` | String | 头像URL | "" | - |
 | `password` | String | 密码（加密存储） | undefined | - |
+| `lastLoginAt` | Date | 最后登录时间 | undefined | - |
 | `createdAt` | Date | 创建时间 | 自动生成 | - |
 | `updatedAt` | Date | 更新时间 | 自动生成 | - |
 
@@ -535,6 +619,12 @@ news-mobile-app/
 - 遵循React Hooks最佳实践
 - 组件化开发，提高代码复用性
 - 使用CSS变量进行样式管理
+- 后端代码已完成全面规范优化，包括：
+  - 统一的命名规范和代码格式
+  - 完整的JSDoc注释文档
+  - 一致的错误处理机制
+  - 安全的配置管理
+  - 清晰的模块划分和代码结构
 
 ### 安全注意事项
 - 敏感信息使用环境变量存储

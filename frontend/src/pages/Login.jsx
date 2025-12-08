@@ -1,9 +1,18 @@
+// React核心库导入
 import React, { useState, useEffect } from 'react';
+
+// UI组件库导入
 import { Form, Input, Button, Toast } from 'antd-mobile';
+
+// 路由相关导入
 import { useNavigate, useLocation } from 'react-router-dom';
+
+// 服务层导入
 import service, { setToken } from '../services/axios';
 
-// --- 样式定义 ---
+/**
+ * 组件样式定义
+ */
 const styles = {
   container: {
     minHeight: '100vh',
@@ -11,7 +20,6 @@ const styles = {
     justifyContent: 'center',
     alignItems: 'center',
     padding: '20px',
-    // 背景纹理已经在 index.css body 中定义，这里只需透明或保持布局
   },
   card: {
     width: '100%',
@@ -25,7 +33,9 @@ const styles = {
   },
   topLine: {
     position: 'absolute',
-    top: 0, left: 0, right: 0,
+    top: 0,
+    left: 0,
+    right: 0,
     height: '4px',
     background: 'var(--c-terra)', // 引用全局变量
   },
@@ -84,22 +94,30 @@ const styles = {
     textAlign: 'center',
     fontSize: '12px',
     color: '#ccc',
-  }
+  },
 };
 
+/**
+ * 登录/注册页面组件
+ * @returns {JSX.Element} 登录/注册页面元素
+ */
 const LoginPage = () => {
+  // 路由相关
   const navigate = useNavigate();
   const location = useLocation();
 
-  // 状态管理
+  // 表单相关
+  const [form] = Form.useForm();
+  
+  // 页面状态
   const [activeTab, setActiveTab] = useState('login'); // 'login' | 'register'
   const [loginType, setLoginType] = useState('password'); // 'password' | 'sms'
-
-  const [form] = Form.useForm();
   const [loading, setLoading] = useState(false);
   const [countdown, setCountdown] = useState(0);
 
-  // 倒计时逻辑
+  /**
+   * 倒计时效果
+   */
   useEffect(() => {
     let timer;
     if (countdown > 0) {
@@ -108,22 +126,30 @@ const LoginPage = () => {
     return () => clearInterval(timer);
   }, [countdown]);
 
-  // 切换 Tab (登录/注册)
+  /**
+   * 切换Tab（登录/注册）
+   * @param {string} tab - 目标Tab（'login' 或 'register'）
+   */
   const handleTabChange = (tab) => {
     setActiveTab(tab);
     form.resetFields();
-    // 如果切到注册，默认不需要选登录方式，但在逻辑上重置比较安全
+    // 注册默认使用密码方式
     if (tab === 'register') {
-      setLoginType('password'); // 注册默认也是输入密码+验证码
+      setLoginType('password');
     }
   };
 
-  // 发送验证码
+  /**
+   * 发送验证码
+   */
   const handleGetCode = async () => {
     const mobile = form.getFieldValue('phone');
     if (!mobile) return Toast.show('请输入手机号');
-    // 简单校验手机号格式
-    if (!/^1[3-9]\d{9}$/.test(mobile)) return Toast.show('手机号格式不正确');
+    
+    // 手机号格式校验
+    if (!/^1[3-9]\d{9}$/.test(mobile)) {
+      return Toast.show('手机号格式不正确');
+    }
 
     try {
       await service.post('/auth/send-code', { phone: mobile });
@@ -131,11 +157,19 @@ const LoginPage = () => {
       setCountdown(60);
     } catch (error) {
       console.error('Send code error:', error);
-      // 错误信息通常由拦截器处理，这里可以不做额外处理
+      // 错误信息由拦截器处理
     }
   };
 
-  // 提交表单
+  /**
+   * 提交表单
+   * @param {Object} values - 表单值
+   * @param {string} values.phone - 手机号
+   * @param {string} [values.password] - 密码
+   * @param {string} [values.confirmPassword] - 确认密码
+   * @param {string} [values.code] - 验证码
+   * @param {string} [values.nickname] - 昵称（注册时使用）
+   */
   const onFinish = async (values) => {
     setLoading(true);
     try {

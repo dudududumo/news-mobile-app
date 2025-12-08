@@ -1,20 +1,36 @@
-// Postdetail：
+// React核心库导入
 import React, { useState, useEffect, useRef, useCallback } from 'react';
+
+// 路由相关导入
 import { useParams, useNavigate, useLocation } from 'react-router-dom';
+
+// UI组件库导入
 import { NavBar, ImageViewer, Skeleton, Toast, ActionSheet, TextArea, Button, Modal } from 'antd-mobile';
 import { HeartOutline, MessageOutline, EyeOutline, CompassOutline, HeartFill, SendOutline, DeleteOutline } from 'antd-mobile-icons';
-import service, { getToken } from '../services/axios'; // 确保 getToken 被引入
+
+// 服务层导入
+import service, { getToken } from '../services/axios';
 import analytics from '../services/analytics';
+
+// 工具库导入
 import dayjs from 'dayjs';
 import relativeTime from 'dayjs/plugin/relativeTime';
 import 'dayjs/locale/zh-cn';
 
-//修复1:仅启用中文相对时间扩展，但不设置locale为默认（因为主帖子需要YYYY-MM-DD）
+// 初始化dayjs配置
+// 启用中文相对时间扩展，但不设置locale为默认（主帖子需要YYYY-MM-DD格式）
 dayjs.extend(relativeTime);
-dayjs.locale('zh-cn');//确保fromNow()是中文的
-const BRAND_COLOR = '#a04030';
+dayjs.locale('zh-cn'); // 确保fromNow()显示中文
 
-// 图片网格组件 - 与Home页面保持一致
+// 品牌颜色常量
+export const BRAND_COLOR = '#a04030';
+
+/**
+ * 图片网格组件 - 与Home页面保持一致
+ * @param {Object} props - 组件属性
+ * @param {string[]} props.images - 图片URL数组
+ * @returns {JSX.Element} 图片网格元素
+ */
 const ImageGrid = ({ images }) => {
   if (!images || images.length === 0) return null;
   const count = images.length;
@@ -59,7 +75,9 @@ const getLikedStateFromCache = (postId, userId) => {
   return userCache[postId];
 };
 
-//---样式定义(保持不变)---
+/**
+ * 组件样式定义
+ */
 const styles = {
   container: {
     minHeight: '100vh',
@@ -243,7 +261,10 @@ const styles = {
   },
   '.adm-list.adm-list-default': { backgroundColor: 'transparent' },
 };
-//骨架屏(不变)
+/**
+ * 详情页骨架屏组件
+ * @returns {JSX.Element} 骨架屏元素
+ */
 const DetailSkeleton = () => (
   <div style={{ padding: 16 }}>
     <Skeleton.Title animated style={{ height: 60, marginBottom: 20 }} />
@@ -251,6 +272,12 @@ const DetailSkeleton = () => (
   </div>
 );
 
+/**
+ * 帖子详情页面组件
+ * @param {Object} props - 组件属性
+ * @param {boolean} props.isAuthenticated - 用户是否已登录
+ * @returns {JSX.Element} 帖子详情页面元素
+ */
 const PostDetail = ({ isAuthenticated }) => {
   const { id } = useParams();
   const navigate = useNavigate();
@@ -269,7 +296,9 @@ const PostDetail = ({ isAuthenticated }) => {
   // ⭐️ 新增：获取当前用户信息
   const [userInfo, setUserInfo] = useState(null);
 
-  // 从localStorage获取用户信息
+  /**
+   * 从localStorage获取用户信息
+   */
   useEffect(() => {
     const savedUserInfo = localStorage.getItem('userInfo');
     if (savedUserInfo) {
@@ -282,10 +311,12 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, []);
 
+  // 当前用户ID
   const currentUserId = userInfo?._id;
 
-
-  //获取评论列表 (不变)
+  /**
+   * 获取评论列表
+   */
   const fetchComments = useCallback(async () => {
     if (!id) return;
     try {
@@ -299,7 +330,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]);
 
-  //提交评论 (不变)
+  /**
+   * 提交评论
+   */
   const handleSubmitComment = async () => {
     if (!isAuthenticated) {
       Toast.show('请先登录才能评论');
@@ -321,8 +354,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  //详情数据加载
-  //修复2:检查缓存并覆盖后端的isLiked/likes状态
+  /**
+   * 加载帖子详情数据
+   */
   const fetchPostDetail = async () => {
     try {
       setLoading(true);
@@ -356,7 +390,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  // 简化数据加载逻辑，根据id变化重新加载数据
+  /**
+   * 根据id变化重新加载数据
+   */
   useEffect(() => {
     // 重置fetchRef，确保每次id变化时都重新加载数据
     fetchRef.current = false;
@@ -369,7 +405,13 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [id]); // 当id变化时重新执行
 
-  // 显示主题化弹窗（与Home页面一致的样式）
+  /**
+   * 显示主题化弹窗（与Home页面一致的样式）
+   * @param {string} title - 弹窗标题
+   * @param {React.ReactNode} content - 弹窗内容
+   * @param {Function} onConfirm - 确认回调函数
+   * @param {string} [confirmText='确定'] - 确认按钮文本
+   */
   const showThemeModal = (title, content, onConfirm, confirmText = '确定') => {
     const modal = Modal.show({
       content: (
@@ -404,10 +446,18 @@ const PostDetail = ({ isAuthenticated }) => {
     });
   };
 
+  /**
+   * 处理评论删除
+   * @param {string} commentId - 评论ID
+   */
   const handleDeleteComment = (commentId) => {
     showThemeModal('确认删除', '确定要删除这条评论吗？', () => confirmDeleteComment(commentId), '删除');
   };
 
+  /**
+   * 确认删除评论
+   * @param {string} commentId - 评论ID
+   */
   const confirmDeleteComment = async (commentId) => {
     if (!commentId) return;
 
@@ -443,7 +493,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  //加载评论列表并在需要时滚动到评论区 (不变)
+  /**
+   * 加载评论列表并在需要时滚动到评论区
+   */
   useEffect(() => {
     if (post?._id) {
       fetchComments();
@@ -458,7 +510,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }, [post, fetchComments, location.state]);
 
-  //滚动到评论区 (不变)
+  /**
+   * 滚动到评论区
+   */
   const handleCommentClick = () => {
     if (!isAuthenticated) {
       setShowLoginAction(true);
@@ -469,7 +523,9 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   }
 
-  //增强点赞逻辑，成功后更新缓存
+  /**
+   * 处理点赞操作
+   */
   const handleLike = async () => {
     if (!isAuthenticated) {
       setShowLoginAction(true);
@@ -511,18 +567,30 @@ const PostDetail = ({ isAuthenticated }) => {
     }
   };
 
-  //...(其他函数保持不变)
+  /**
+   * 处理登录操作
+   * @param {Object} action - 操作对象
+   */
   const handleLoginAction = (action) => {
     setShowLoginAction(false);
     if (action.key === 'login') {
       navigate('/login', { state: { from: `/post/${id}` } });
     }
   }
+  /**
+   * 处理标签挑战
+   * @param {string} tag - 标签
+   */
   const handleChallenge = (tag) => {
     navigate('/create', {
       state: { autoFillTopic: tag }
     });
   };
+  /**
+   * 渲染相关帖子
+   * @param {Array} related - 相关帖子数组
+   * @returns {JSX.Element} 相关帖子元素
+   */
   const renderRelatedPosts = (related) => (
     <div style={{ marginTop: '40px', paddingTop: '10px', borderTop: '1px dashed#eee' }}>
       <div style={styles.aiTitle}>

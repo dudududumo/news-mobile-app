@@ -1,12 +1,28 @@
+/**
+ * AI服务模块
+ * 提供AI标签生成功能，集成外部AI服务并提供本地兜底策略
+ */
 const OpenAI = require('openai');
 
-// 初始化客户端 (完美复刻你的 curl 配置)
+/**
+ * OpenAI客户端实例 (完美复刻curl配置)
+ */
 const client = new OpenAI({
   apiKey: process.env.VOLC_API_KEY, // 读取 .env 里的 Key
   baseURL: 'https://ark.cn-beijing.volces.com/api/v3', // 读取 .env 里的 Endpoint
 });
 
+/**
+ * AI服务类
+ * 提供AI标签生成功能
+ */
 class AIService {
+  /**
+   * 生成AI标签
+   * @async
+   * @param {string} content - 需要分析的文本内容
+   * @returns {Promise<Array<string>>} - 生成的标签数组
+   */
   async generateTags(content) {
     // 1. 安全检查
     if (!content) return [];
@@ -58,7 +74,11 @@ class AIService {
     }
   }
 
-  // 本地兜底 (当 AI 挂掉时使用)
+  /**
+   * 本地兜底策略 (当AI服务不可用时使用)
+   * @param {string} text - 需要分析的文本内容
+   * @returns {Array<string>} - 生成的标签数组
+   */
   localFallback(text) {
     const tags = ['日常'];
     if (text.match(/吃|喝|味|餐/)) tags.push('美食');

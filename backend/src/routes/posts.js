@@ -1,4 +1,7 @@
-// C:\Users\杜姝蒙\news-mobile-app\backend\src\routes\posts.js
+/**
+ * 文章路由
+ * 处理文章的创建、获取、更新、删除、点赞、评论等功能
+ */
 const express = require('express');
 const router = express.Router();
 const mongoose = require('mongoose');
@@ -10,7 +13,8 @@ const path = require('path');
 const fs = require('fs');
 const os = require('os');
 const OpenAI = require('openai');
-const COS = require('cos-nodejs-sdk-v5');
+// 暂时注释掉COS模块，解决安装问题
+// const COS = require('cos-nodejs-sdk-v5');
 
 // --- 1. AI 配置 ---
 const client = new OpenAI({
