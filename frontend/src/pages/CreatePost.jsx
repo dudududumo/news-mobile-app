@@ -121,6 +121,8 @@ const styles = {
 };
 
 // --- Quill 配置 ---
+// ReactQuill 引用，用于解决 findDOMNode 警告
+const quillRef = useRef(null);
 const quillModules = {
   toolbar: [
     [{ 'size': ['small', false, 'large', 'huge'] }],
@@ -370,26 +372,27 @@ const CreatePost = () => {
 
   // 5. 退出时保存到云端
   const handleExit = () => {
-    // 保存到本地存储
-    const key = getDraftKey();
-    const draftData = { title, content, fileList, updatedAt: Date.now() };
-    localStorage.setItem(key, JSON.stringify(draftData));
+    // 如果标题、内容和文件列表都为空，不保存草稿
+    if (title || content || fileList.length > 0) {
+      // 保存到本地存储
+      const key = getDraftKey();
+      const draftData = { title, content, fileList, updatedAt: Date.now() };
+      localStorage.setItem(key, JSON.stringify(draftData));
 
-    // 如果在线，尝试云端保存（异步执行，不等待结果）
-    if (isOnline) {
-      // 使用try-catch包裹，避免控制台显示错误信息
-      service.post('/posts/draft', {
-        title, content,
-        images: fileList.map(item => item.url).filter(Boolean),
-        updatedAt: Date.now()
-      }).then(() => {
-        cloudSyncFailed.current = false;
-      }).catch(() => {
-        // 不显示错误信息，只更新状态
-        cloudSyncFailed.current = true;
-      });
-    } else {
-      cloudSyncFailed.current = true;
+      // 如果在线，尝试云端保存（异步执行，不等待结果）
+      if (isOnline) {
+        // 使用try-catch包裹，避免控制台显示错误信息
+        service.post('/posts/draft', {
+          title, content,
+          images: fileList.map(item => item.url).filter(Boolean),
+          updatedAt: Date.now()
+        }).then(() => {
+          cloudSyncFailed.current = false;
+        }).catch(() => {
+          // 不显示错误信息，只更新状态
+          cloudSyncFailed.current = true;
+        });
+      }
     }
 
     // 直接返回，不添加延迟
@@ -636,6 +639,7 @@ const CreatePost = () => {
           `}</style>
 
           <ReactQuill
+            ref={quillRef}
             theme="snow"
             value={content}
             onChange={setContent}

@@ -70,43 +70,12 @@ router.post('/', authMiddleware, async (req, res) => {
     const { title, content, images, tags } = req.body;
     if (!req.user?.userId) return res.status(401).json({ message: '未授权' });
 
-    // 无论是否提供标签，都在发布时自动生成AI标签
-    let finalTags = [];
-    // 准备用于生成标签的内容
-    const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
-    if (fullText.length > 10) {
-      try {
-        // 调用AI标签生成功能
-        const completion = await client.chat.completions.create({
-          messages: [
-            { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
-            { role: "user", content: fullText }
-          ],
-          model: MODEL_ID,
-        });
-
-        try {
-          const aiResult = completion.choices[0].message.content;
-          const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
-          finalTags = JSON.parse(cleanJson);
-          console.log('AI生成的标签:', finalTags);
-        } catch (parseError) {
-          console.error('AI JSON解析失败，使用默认标签:', parseError);
-          finalTags = ['日常', '生活'];
-        }
-      } catch (aiError) {
-        console.error('AI标签生成失败，使用默认标签:', aiError);
-        finalTags = ['日常', '生活'];
-      }
-    } else {
-      finalTags = ['日常', '生活'];
-    }
-
+    // 先创建帖子，不等待AI标签生成
     const newPost = new Post({
       title: title || '',
       content,
       images: images || [],
-      tags: finalTags,
+      tags: ['生成中'], // 临时标签
       author: req.user.userId,
       likes: 0,
       commentsCount: 0
@@ -114,6 +83,40 @@ router.post('/', authMiddleware, async (req, res) => {
 
     const savedPost = await newPost.save();
     await savedPost.populate('author', 'nickname avatar');
+
+    // 异步生成AI标签，不阻塞响应
+    setImmediate(async () => {
+      let finalTags = ['日常', '生活'];
+      // 准备用于生成标签的内容
+      const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
+      if (fullText.length > 10) {
+        try {
+          // 调用AI标签生成功能
+          const completion = await client.chat.completions.create({
+            messages: [
+              { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
+              { role: "user", content: fullText }
+            ],
+            model: MODEL_ID,
+          });
+
+          try {
+            const aiResult = completion.choices[0].message.content;
+            const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
+            finalTags = JSON.parse(cleanJson);
+            console.log('AI生成的标签:', finalTags);
+          } catch (parseError) {
+            console.error('AI JSON解析失败，使用默认标签:', parseError);
+          }
+        } catch (aiError) {
+          console.error('AI标签生成失败，使用默认标签:', aiError);
+        }
+      }
+
+      // 更新帖子的标签
+      await Post.findByIdAndUpdate(savedPost._id, { tags: finalTags });
+    });
+
     res.status(201).json(savedPost);
   } catch (error) {
     console.error('发布失败:', error);
@@ -363,38 +366,7 @@ router.put('/:id', authMiddleware, async (req, res) => {
       return res.status(403).json({ message: '无权编辑此帖子' });
     }
 
-    // 处理标签：无论用户是否提供标签，都自动生成AI标签
-    let finalTags = [];
-    // 准备用于生成标签的内容
-    const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
-    if (fullText.length > 10) {
-      try {
-        // 调用AI标签生成功能
-        const completion = await client.chat.completions.create({
-          messages: [
-            { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
-            { role: "user", content: fullText }
-          ],
-          model: MODEL_ID,
-        });
-
-        try {
-          const aiResult = completion.choices[0].message.content;
-          const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
-          finalTags = JSON.parse(cleanJson);
-          console.log('AI生成的标签:', finalTags);
-        } catch (parseError) {
-          console.error('AI JSON解析失败，使用默认标签:', parseError);
-          finalTags = ['日常', '生活'];
-        }
-      } catch (aiError) {
-        console.error('AI标签生成失败，使用默认标签:', aiError);
-        finalTags = ['日常', '生活'];
-      }
-    } else {
-      finalTags = ['日常', '生活'];
-    }
-
+    // 先更新帖子内容，不等待AI标签生成
     // 更新帖子内容
     const updatedPost = await Post.findByIdAndUpdate(
       id,
@@ -402,11 +374,44 @@ router.put('/:id', authMiddleware, async (req, res) => {
         title: title || '',
         content,
         images: images || [],
-        tags: finalTags,
+        tags: ['生成中'], // 临时标签
         editAt: new Date()
       },
       { new: true }
     ).populate('author', 'nickname avatar');
+
+    // 异步生成AI标签，不阻塞响应
+    setImmediate(async () => {
+      let finalTags = ['日常', '生活'];
+      // 准备用于生成标签的内容
+      const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
+      if (fullText.length > 10) {
+        try {
+          // 调用AI标签生成功能
+          const completion = await client.chat.completions.create({
+            messages: [
+              { role: "system", content: "你是一个资深的资讯编辑。请提取3-5个最相关的标签。输出纯JSON数组格式，例如:[\"生活\",\"美食\"]。" },
+              { role: "user", content: fullText }
+            ],
+            model: MODEL_ID,
+          });
+
+          try {
+            const aiResult = completion.choices[0].message.content;
+            const cleanJson = aiResult.replace(/```json/g, '').replace(/```/g, '').trim();
+            finalTags = JSON.parse(cleanJson);
+            console.log('AI生成的标签:', finalTags);
+          } catch (parseError) {
+            console.error('AI JSON解析失败，使用默认标签:', parseError);
+          }
+        } catch (aiError) {
+          console.error('AI标签生成失败，使用默认标签:', aiError);
+        }
+      }
+
+      // 更新帖子的标签
+      await Post.findByIdAndUpdate(id, { tags: finalTags });
+    });
 
     res.json(updatedPost);
   } catch (error) {
