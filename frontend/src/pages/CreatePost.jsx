@@ -1,7 +1,7 @@
 import React, { useState, useEffect, useRef, useCallback } from 'react';
 import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
-import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input } from 'antd-mobile';
+import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input, Modal } from 'antd-mobile';
 import { useNavigate, useLocation } from 'react-router-dom';
 import { CompassOutline } from 'antd-mobile-icons';
 import service from '../services/axios';
@@ -80,6 +80,7 @@ const styles = {
     borderRadius: '4px',
     fontSize: '13px',
   },
+  // 发布按钮样式
   publishBtn: {
     fontSize: '14px',
     fontWeight: '500',
@@ -88,6 +89,14 @@ const styles = {
     background: 'var(--c-terra)',
     border: 'none',
     color: '#fff',
+  },
+  // 自动保存提示样式
+  autoSaveHint: {
+    fontSize: '12px',
+    color: '#999',
+    marginTop: '16px',
+    textAlign: 'center',
+    paddingBottom: '20px',
   }
 };
 
@@ -215,16 +224,57 @@ const CreatePost = () => {
     }, 1000);
   }, []);
 
+  // 显示主题化弹窗（与Home页面一致的样式）
+  const showThemeModal = (title, content, onConfirm, confirmText = '确定', onCancel) => {
+    const modal = Modal.show({
+      content: (
+        <div className="login-modal">
+          <h3 className="login-modal-title">{title}</h3>
+          <div className="login-modal-content">
+            {content}
+          </div>
+          <div className="login-modal-button-group">
+            <button
+              className="login-modal-button login-modal-cancel"
+              onClick={() => {
+                modal.close();
+                if (onCancel) onCancel();
+              }}
+            >
+              取消
+            </button>
+            <button
+              className="login-modal-button login-modal-confirm"
+              onClick={() => {
+                modal.close();
+                if (onConfirm) onConfirm();
+              }}
+            >
+              {confirmText}
+            </button>
+          </div>
+        </div>
+      ),
+      closeOnMaskClick: true,
+      modalClassName: 'custom-modal-reset',
+      bodyStyle: {
+        padding: 0,
+        backgroundColor: 'transparent',
+        width: '100%'
+      }
+    });
+  };
+
   // 2. 恢复草稿
   useEffect(() => {
     const key = getDraftKey();
     const draft = localStorage.getItem(key);
 
     if (draft) {
-      Dialog.confirm({
-        title: '恢复编辑',
-        content: '发现未发布的草稿，是否继续编辑？',
-        onConfirm: () => {
+      showThemeModal(
+        '恢复编辑',
+        '发现未发布的草稿，是否继续编辑？',
+        () => {
           try {
             const data = JSON.parse(draft);
             isRestoring.current = true;
@@ -236,8 +286,9 @@ const CreatePost = () => {
             setTimeout(() => { isRestoring.current = false; }, 1000);
           } catch (e) { console.error(e); }
         },
-        onCancel: () => localStorage.removeItem(key),
-      });
+        '继续编辑',
+        () => localStorage.removeItem(key)
+      );
     }
   }, []);
 
@@ -350,8 +401,10 @@ const CreatePost = () => {
       cloudSyncFailed.current = true;
     }
 
-    // 返回上一页
-    navigate(-1);
+    // 延迟2秒再返回，避免显示404提示
+    setTimeout(() => {
+      navigate(-1);
+    }, 2000);
   };
 
   // 图片上传
@@ -621,6 +674,11 @@ const CreatePost = () => {
               <span key={i} style={styles.tagItem}>#{tag}</span>
             ))}
           </div>
+        </div>
+
+        {/* 自动保存提示 */}
+        <div style={styles.autoSaveHint}>
+          草稿每30秒自动保存
         </div>
 
       </div>
