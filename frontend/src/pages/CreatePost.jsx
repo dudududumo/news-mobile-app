@@ -3,7 +3,7 @@ import ReactQuill from 'react-quill';
 import 'react-quill/dist/quill.snow.css';
 import { NavBar, ImageUploader, Toast, Dialog, SpinLoading, Input, Modal } from 'antd-mobile';
 import { useNavigate, useLocation } from 'react-router-dom';
-import { CompassOutline } from 'antd-mobile-icons';
+import { CompassOutline, ArrowLeftOutline } from 'antd-mobile-icons';
 import service from '../services/axios';
 
 // --- 样式定义 ---
@@ -14,12 +14,31 @@ const styles = {
     paddingBottom: '40px',
   },
   navBar: {
-    //background: 'rgba(239, 235, 233, 0.9)',
-    borderBottom: '1px solid rgba(0,0,0,0.05)',
-    position: 'sticky',
+    position: 'fixed',
     top: 0,
-    zIndex: 100,
+    left: 0,
+    right: 0,
+    height: '56px',
+    background: 'rgba(255,255,255,0.98)',
     backdropFilter: 'blur(10px)',
+    display: 'flex',
+    alignItems: 'center',
+    zIndex: 1000,
+    borderBottom: '1px solid #f5f5f5',
+  },
+  navContent: {
+    width: '100%',
+    padding: '0 20px',
+    display: 'flex',
+    justifyContent: 'space-between',
+    alignItems: 'center'
+  },
+  navLogo: {
+    fontFamily: '"Playfair Display",serif',
+    fontSize: '24px',
+    fontWeight: '700',
+    color: '#000',
+    letterSpacing: '-0.5px'
   },
   paperCard: {
     background: '#fff',
@@ -383,28 +402,24 @@ const CreatePost = () => {
     const draftData = { title, content, tags, fileList, updatedAt: Date.now() };
     localStorage.setItem(key, JSON.stringify(draftData));
 
-    // 如果在线，尝试云端保存
+    // 如果在线，尝试云端保存（异步执行，不等待结果）
     if (isOnline) {
-      try {
-        const cloudData = {
-          title, content, tags,
-          images: fileList.map(item => item.url).filter(Boolean),
-          updatedAt: Date.now()
-        };
-        await service.post('/posts/draft', cloudData);
+      service.post('/posts/draft', {
+        title, content, tags,
+        images: fileList.map(item => item.url).filter(Boolean),
+        updatedAt: Date.now()
+      }).then(() => {
         cloudSyncFailed.current = false;
-      } catch (error) {
+      }).catch(error => {
         console.error('退出时云端保存失败:', error);
         cloudSyncFailed.current = true;
-      }
+      });
     } else {
       cloudSyncFailed.current = true;
     }
 
-    // 延迟5秒再返回，避免显示404提示
-    setTimeout(() => {
-      navigate(-1);
-    }, 5000);
+    // 直接返回，不添加延迟
+    navigate(-1);
   };
 
   // 图片上传
@@ -455,14 +470,6 @@ const CreatePost = () => {
   const handleSubmit = async () => {
     if (!content && fileList.length === 0) return Toast.show('内容不能为空');
 
-    // 自动生成AI标签
-    if (tags.length === 0) {
-      const fullText = `${title || ''}\n${content.replace(/<[^>]+>/g, '')}`.trim();
-      if (fullText.length >= 2) {
-        await handleAiLabel();
-      }
-    }
-
     let finalTitle = title;
     if (!finalTitle) {
       const plainText = content.replace(/<[^>]+>/g, '').trim();
@@ -492,10 +499,8 @@ const CreatePost = () => {
         localStorage.removeItem(getDraftKey());
       }
 
-      // 返回到首页或帖子详情页
-      setTimeout(() => {
-        navigate(isEditMode ? '/post/' + editingPost._id : '/');
-      }, 1500);
+      // 直接返回到首页或帖子详情页，不添加延迟
+      navigate(isEditMode ? '/post/' + editingPost._id : '/');
     } catch (e) {
       console.error(e);
       Toast.show({
@@ -509,23 +514,51 @@ const CreatePost = () => {
 
   return (
     <div style={styles.container}>
-      <NavBar
-        style={styles.navBar}
-        onBack={handleExit}
-        right={<button
-          style={{
-            ...styles.publishBtn,
-            opacity: isSubmitting ? 0.7 : 1,
-            pointerEvents: isSubmitting ? 'none' : 'auto'
-          }}
-          onClick={handleSubmit}
-          disabled={isSubmitting}
-        >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>}
-      >
-        <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>
-          {isEditMode ? '编辑帖子' : '撰写新篇'}
-        </span>
-      </NavBar>
+      {/* 自定义导航栏 */}
+      <div style={styles.navBar}>
+        <div style={styles.navContent}>
+          {/* 左侧返回按钮 */}
+          <button
+            style={{
+              background: 'none',
+              border: 'none',
+              padding: '8px',
+              cursor: 'pointer',
+              display: 'flex',
+              alignItems: 'center',
+              justifyContent: 'center'
+            }}
+            onClick={handleExit}
+          >
+            <ArrowLeftOutline style={{ fontSize: '20px', color: '#000' }} />
+          </button>
+
+          {/* 中间标题 */}
+          <span style={{ fontWeight: 'bold', color: 'var(--c-text)' }}>
+            {isEditMode ? '编辑帖子' : '撰写新篇'}
+          </span>
+
+          {/* 右侧内容 */}
+          <div style={{ display: 'flex', alignItems: 'center', gap: '16px' }}>
+            {/* Logo */}
+            <div style={styles.navLogo}>城市头条</div>
+
+            {/* 发布按钮 */}
+            <button
+              style={{
+                ...styles.publishBtn,
+                opacity: isSubmitting ? 0.7 : 1,
+                pointerEvents: isSubmitting ? 'none' : 'auto'
+              }}
+              onClick={handleSubmit}
+              disabled={isSubmitting}
+            >{isSubmitting ? '提交中...' : (isEditMode ? '保存修改' : '发布')}</button>
+          </div>
+        </div>
+      </div>
+
+      {/* 为固定导航栏留出空间 */}
+      <div style={{ height: '56px' }}></div>
 
       <div style={styles.statusBar}>
         {isEditMode && editingPost ? (
