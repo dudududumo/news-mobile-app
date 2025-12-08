@@ -1,5 +1,5 @@
-import React, { useState } from 'react';
-import { BrowserRouter as Router, Routes, Route, Navigate, useLocation } from 'react-router-dom';
+import React, { useState, useEffect } from 'react';
+import { BrowserRouter as Router, Routes, Route, Navigate, useLocation, useNavigate } from 'react-router-dom';
 import CreatePost from './pages/CreatePost';
 import Login from './pages/Login';
 import Home from './pages/Home';
@@ -18,9 +18,15 @@ const ProtectedRoute = ({ children }) => {
 
 function AppContent() {
   const location = useLocation();
+  const navigate = useNavigate();
   const isHomeRoute = location.pathname === '/';
   const token = getToken();
   const isAuthenticated = token && token.token;
+  
+  // 页面导航时滚动到顶部
+  useEffect(() => {
+    window.scrollTo(0, 0);
+  }, [location.pathname]);
 
   // 将用户信息从 localStorage 提升为状态
   const [currentUser, setCurrentUser] = useState(() => {
