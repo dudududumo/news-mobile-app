@@ -124,10 +124,13 @@ const CreatePost = () => {
   const [lastSaved, setLastSaved] = useState(null);
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedTag, setSelectedTag] = useState(null); // 用于存储从详情页传递的标签
 
   // 编辑模式相关状态
   const isEditMode = location.state?.isEdit || false;
   const editingPost = location.state?.post || null;
+  // 从路由状态中获取自动填充的话题
+  const autoFillTopic = location.state?.autoFillTopic || null;
 
   // 引用管理
   const isRestoring = useRef(false);
@@ -135,6 +138,15 @@ const CreatePost = () => {
   const cloudSyncFailed = useRef(false);
   const modalShown = useRef(false); // 用于标记弹窗是否已显示
   const quillRef = useRef(null); // ReactQuill引用，用于解决findDOMNode警告
+
+  // 当路由状态中的autoFillTopic变化时，更新selectedTag
+  useEffect(() => {
+    if (autoFillTopic) {
+      setSelectedTag(autoFillTopic);
+      // 可以在这里显示一个提示，告知用户话题已自动填充
+      Toast.show(`已自动填充话题：${autoFillTopic}`);
+    }
+  }, [autoFillTopic]);
 
   /**
    * 获取当前用户的专属草稿Key
@@ -472,6 +484,8 @@ const CreatePost = () => {
         content,
         images: imageUrls,
         status: 'published',
+        // 如果有自动填充的话题，将其作为标签添加到帖子数据中
+        ...(selectedTag && { tags: [selectedTag] })
       };
 
       if (isEditMode && editingPost) {
