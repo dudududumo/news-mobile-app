@@ -117,8 +117,13 @@ router.post('/', authMiddleware, async (req, res) => {
         }
       }
 
+      // 合并用户传递的标签和AI生成的标签，用户标签优先
+      const userTags = tags || [];
+      // 去重并合并，用户标签放在前面
+      const mergedTags = [...new Set([...userTags, ...finalTags])];
+      
       // 更新帖子的标签
-      await Post.findByIdAndUpdate(savedPost._id, { tags: finalTags });
+      await Post.findByIdAndUpdate(savedPost._id, { tags: mergedTags });
     });
 
     res.status(201).json(savedPost);
