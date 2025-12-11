@@ -484,8 +484,7 @@ const CreatePost = () => {
         content,
         images: imageUrls,
         status: 'published',
-        // 如果有自动填充的话题，将其作为标签添加到帖子数据中
-        ...(selectedTag && { tags: [selectedTag] })
+        tags: selectedTag ? [selectedTag] : [],
       };
 
       if (isEditMode && editingPost) {
